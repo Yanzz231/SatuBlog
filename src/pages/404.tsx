@@ -17,9 +17,6 @@ export default function NotFound(): ReactNode {
             <Link className="button button--primary button--lg" to="/">
               Kembali ke Beranda
             </Link>
-            <Link className="button button--secondary button--lg" to="/blog">
-              Lihat Blog
-            </Link>
           </div>
         </div>
       </main>
