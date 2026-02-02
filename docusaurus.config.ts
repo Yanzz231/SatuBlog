@@ -24,6 +24,7 @@ const config: Config = {
       "classic",
       {
         docs: {
+          routeBasePath: "/",
           sidebarPath: "./sidebars.ts",
           editUrl: "https://github.com/satublog/satublog/tree/main/",
         },
@@ -67,64 +68,12 @@ const config: Config = {
       title: "Satu Blog",
       items: [
         {
-          type: "docSidebar",
-          sidebarId: "tutorialSidebar",
-          position: "left",
-          label: "Dokumentasi",
-        },
-        { to: "/blog", label: "Blog", position: "left" },
-        {
           href: "https://github.com/yanzz231",
           position: "right",
           className: "header-github-link",
           "aria-label": "GitHub repository",
         },
       ],
-    },
-    footer: {
-      style: "dark",
-      links: [
-        {
-          title: "Konten",
-          items: [
-            {
-              label: "Dokumentasi",
-              to: "/docs/intro",
-            },
-            {
-              label: "Blog",
-              to: "/blog",
-            },
-          ],
-        },
-        {
-          title: "Komunitas",
-          items: [
-            {
-              label: "Discord",
-              href: "https://discord.gg/satublog",
-            },
-            {
-              label: "Twitter",
-              href: "https://twitter.com/satublog",
-            },
-          ],
-        },
-        {
-          title: "Lainnya",
-          items: [
-            {
-              label: "GitHub",
-              href: "https://github.com/satublog",
-            },
-            {
-              label: "RSS Feed",
-              to: "/blog/rss.xml",
-            },
-          ],
-        },
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} SatuBlog. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
@@ -140,7 +89,6 @@ const config: Config = {
     },
     docs: {
       sidebar: {
-        hideable: true,
         autoCollapseCategories: true,
       },
     },
