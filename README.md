@@ -1,17 +1,31 @@
-# Website
+# SatuBlog
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+**Your Guide to Development Setup and Configuration**
+
+This documentation helps you set up your coding environment and configure various development tools. From Docker containers to development workflows, find everything you need to streamline your development process.
+
+Built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+
+## What You'll Find Here
+
+Explore comprehensive guides on:
+
+- **Development Environment Setup** - Configure your IDE, terminal, and essential tools
+- **Docker & Containerization** - Build, deploy, and manage containerized applications
+- **CI/CD Pipelines** - Automate your deployment and testing workflows
+- **Configuration Management** - Best practices for managing configs across environments
+- **Infrastructure as Code** - Terraform, Kubernetes, and cloud platform setups
 
 ## Installation
 
 ```bash
-yarn
+npm install
 ```
 
 ## Local Development
 
 ```bash
-yarn start
+npm start
 ```
 
 This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
@@ -19,23 +33,13 @@ This command starts a local development server and opens up a browser window. Mo
 ## Build
 
 ```bash
-yarn build
+npm run build
 ```
 
 This command generates static content into the `build` directory and can be served using any static contents hosting service.
 
-## Deployment
-
-Using SSH:
+## Clear Cache
 
 ```bash
-USE_SSH=true yarn deploy
+npm run clear
 ```
-
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
