@@ -28,28 +28,7 @@ const config: Config = {
           sidebarPath: "./sidebars.ts",
           editUrl: "https://github.com/satublog/satublog/tree/main/",
         },
-        blog: {
-          showReadingTime: true,
-          readingTime: ({ content, defaultReadingTime, locale }) =>
-            defaultReadingTime({
-              content,
-              locale,
-              options: { wordsPerMinute: 200 },
-            }),
-          feedOptions: {
-            type: ["rss", "atom"],
-            xslt: true,
-          },
-          editUrl: "https://github.com/satublog/satublog/tree/main/",
-          blogTitle: "Blog",
-          blogDescription: "Artikel dan tutorial terbaru",
-          postsPerPage: 10,
-          blogSidebarTitle: "Artikel Terbaru",
-          blogSidebarCount: 5,
-          onInlineTags: "warn",
-          onInlineAuthors: "warn",
-          onUntruncatedBlogPosts: "warn",
-        },
+        blog: false,
         theme: {
           customCss: "./src/css/custom.css",
         },
