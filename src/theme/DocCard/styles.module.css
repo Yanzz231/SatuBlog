@@ -1,0 +1,19 @@
+.cardContainer {
+  --ifm-link-color: var(--ifm-color-emphasis-900);
+  --ifm-link-hover-color: var(--ifm-color-primary);
+  --ifm-link-hover-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cardTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.cardDescription {
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-600);
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}

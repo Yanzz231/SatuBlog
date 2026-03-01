@@ -1,0 +1,8 @@
+{
+  "label": "Software Architecture",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Design patterns, OOP concepts, dan TypeScript fundamentals yang wajib dikuasai."
+  }
+}

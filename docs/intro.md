@@ -1,33 +1,26 @@
 ---
 sidebar_position: 1
 slug: /
-title: Welcome
+title: Getting Started
 ---
 
 # Welcome to SatuBlog
 
-**Your Guide to Development Setup and Configuration**
+**A personal collection of technical notes — setup guides, installations, and everything in between.**
 
-This documentation helps you set up your coding environment and configure various development tools. From Docker containers to development workflows, find everything you need to streamline your development process.
+This documentation is written from hands-on experience, not just theory. Use it as a reference whenever you need a quick, practical guide.
 
-## What You'll Find Here
+## What's Here
 
-Explore comprehensive guides on:
-
-- **Development Environment Setup** - Configure your IDE, terminal, and essential tools
-- **Docker & Containerization** - Build, deploy, and manage containerized applications
-- **CI/CD Pipelines** - Automate your deployment and testing workflows
-- **Configuration Management** - Best practices for managing configs across environments
-- **Infrastructure as Code** - Terraform, Kubernetes, and cloud platform setups
+- **Learning Notes** — concepts and materials broken down in a simple way
+- **Setup & Installation** — step-by-step guides for tools and configurations
+- **Docker & Containerization** — from building containers to deployment
+- **Dev Workflow** — tips and shortcuts for day-to-day productivity
 
 ---
 
-## Getting Started
-
-Browse the sidebar to find specific topics, or start with the fundamentals of your chosen technology stack.
+Browse the sidebar to find what you need.
 
 ## Contact
-
-Questions or suggestions? Reach out via:
 
 - **GitHub**: [github.com/yanzz231](https://github.com/yanzz231)

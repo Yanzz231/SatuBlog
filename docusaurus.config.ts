@@ -27,12 +27,53 @@ const config: Config = {
           routeBasePath: "/",
           sidebarPath: "./sidebars.ts",
           editUrl: "https://github.com/satublog/satublog/tree/main/",
+          remarkPlugins: [
+            [
+              require("@docusaurus/remark-plugin-npm2yarn"),
+              {
+                sync: true,
+                converters: [
+                  "pnpm",
+                  "yarn",
+                  [
+                    "Bun",
+                    (code: string) =>
+                      code
+                        .replace(/^npm install /gm, "bun add ")
+                        .replace(/^npm i /gm, "bun add ")
+                        .replace(/^npm run /gm, "bun run ")
+                        .replace(/^npm /gm, "bun "),
+                  ],
+                ],
+              },
+            ],
+          ],
         },
         blog: false,
         theme: {
           customCss: "./src/css/custom.css",
         },
       } satisfies Preset.Options,
+    ],
+  ],
+
+  markdown: {
+    mermaid: true,
+  },
+
+  themes: [
+    "@docusaurus/theme-mermaid",
+    [
+      "@easyops-cn/docusaurus-search-local",
+      {
+        hashed: true,
+        language: ["en"],
+        indexDocs: true,
+        docsRouteBasePath: "/",
+        searchBarPosition: "right",
+        highlightSearchTermsOnTargetPage: true,
+        explicitSearchResultPath: true,
+      },
     ],
   ],
 
@@ -44,7 +85,8 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: "Satu Blog",
+      title: "SatuBlog",
+      hideOnScroll: false,
       items: [
         {
           href: "https://github.com/yanzz231",
@@ -55,8 +97,8 @@ const config: Config = {
       ],
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismThemes.vsLight,
+      darkTheme: prismThemes.vsDark,
       additionalLanguages: [
         "bash",
         "json",
@@ -65,10 +107,23 @@ const config: Config = {
         "java",
         "php",
       ],
+      magicComments: [
+        {
+          className: "theme-code-block-highlighted-line",
+          line: "highlight-next-line",
+          block: { start: "highlight-start", end: "highlight-end" },
+        },
+        {
+          className: "code-block-error-line",
+          line: "error-next-line",
+          block: { start: "error-start", end: "error-end" },
+        },
+      ],
     },
     docs: {
       sidebar: {
         autoCollapseCategories: true,
+        hideable: true,
       },
     },
     tableOfContents: {
