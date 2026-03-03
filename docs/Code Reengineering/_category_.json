@@ -1,0 +1,8 @@
+{
+  "label": "Code Reengineering",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "All type of bad code smells and how to refactor it."
+  }
+}
