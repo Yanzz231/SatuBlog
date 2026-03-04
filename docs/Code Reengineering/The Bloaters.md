@@ -346,7 +346,7 @@ service.createUser("John", "Doe", "john@email.com", userAddress, "555-0199");
 
 ### Comparasion (Before & After)
 
-| Feature         | Primitive Obsession (Before)                                    | Refactored (After)                                                |
+| Feature         | Long Parameter List (Before)                                    | Refactored (After)                                                |
 | --------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
 | **Readibility** | A long row of values is hard to decipher.                       | Objects give meaning to groups of data.                           |
 | **Testing**     | Setting up tests requires many dummy values.                    | You pass one well-defined object to the test.                     |
@@ -354,3 +354,55 @@ service.createUser("John", "Doe", "john@email.com", userAddress, "555-0199");
 | **Reusability** | You cannot easily pass the "address" as a unit.                 | The Address object can be passed to any method.                   |
 
 ---
+
+## Data Clumps 
+
+Sometimes different parts of the code contain identical groups of variables (such as parameters for connecting to a database). These clumps should be turned into their own classes.
+
+### Problem
+
+When we hava some of datas, that always group together, if we remove one data and it will give us an error, it signs that our data is data clumps. Data clumps is bad in reusability because we have to copy-paste some of datas that must appear together.
+
+### Example 
+
+```java
+public void logError(int errorCode, String errorMessage) {
+    System.out.println("Error " + errorCode + ": " + errorMessage);
+}
+
+public void notifyAdmin(int errorCode, String errorMessage, String adminEmail) {
+    System.out.println("Alerting " + adminEmail + " about " + errorMessage);
+}
+```
+
+### Solution 
+
+Rather than we copy-paste the datas, that if we wrong copy-paste, it will lead to an error. It is better that we make it as an object or wrapper class. 
+
+### Example Solution
+
+```java
+public class ErrorDetail {
+    private final int code;
+    private final String message;
+
+    public ErrorDetail(int code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+    // Getters...
+}
+
+// Now the methods are cleaner
+public void logError(ErrorDetail error) { ... }
+public void notifyAdmin(ErrorDetail error, String adminEmail) { ... }
+```
+
+### Comparasion (Before & After)
+
+| Feature         | Data Clumps (Before)                                            | Refactored (After)                                                |
+| --------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Readibility** | Repeated parameter groups clutter the code.                     | The relationship between variables is clear.                      |
+| **Testing**     | You must recreate the same group of values for every test.      | You create one `ErrorDetail` object and reuse it.                 |
+| **Maintenance** | Adding a "timestamp" to errors requires changing every method.  | Just add the field to the `ErrorDetail` class.                    |
+| **Reusability** | You can't pass the "error" as a single unit.                    | The object can be passed around the entire system.                |
