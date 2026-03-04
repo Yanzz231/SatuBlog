@@ -302,3 +302,55 @@ public void createContact(String name, PhoneNumber phone) {
 
 ---
 
+## Long Parameter List
+
+A long list of parameters might happen after several types of algorithms are merged in a single method. A long list may have been created to control which algorithm will be run and how.
+
+### Problem 
+
+When we have a method with long parameter, it's high potentially we wrong when we use the method and input the parameter. Even some of text editor provides sequence of parameter, but it still not good approach.
+
+### Example 
+
+```java
+public void createUser(String firstName, String lastName, String email, 
+                       String street, String city, String zipCode, String phone) {
+    // Logic to save user and address...
+    System.out.println("User " + firstName + " created in " + city);
+}
+
+// Calling it is a nightmare:
+service.createUser("John", "Doe", "john@email.com", "123 Main St", "NY", "10001", "555-0199");
+```
+
+### Solution
+
+Rather than we use primitive data type, that can make our method has long parameter, it is better that we refactor it as an object.
+
+### Example Solution
+
+```java
+public class Address {
+    String street, city, zipCode;
+    // Constructor and getters...
+}
+
+public void createUser(String firstName, String lastName, String email, Address address, String phone) {
+    System.out.println("User " + firstName + " created in " + address.getCity());
+}
+
+// Calling it is now structured:
+Address userAddress = new Address("123 Main St", "NY", "10001");
+service.createUser("John", "Doe", "john@email.com", userAddress, "555-0199");
+```
+
+### Comparasion (Before & After)
+
+| Feature         | Primitive Obsession (Before)                                    | Refactored (After)                                                |
+| --------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Readibility** | A long row of values is hard to decipher.                       | Objects give meaning to groups of data.                           |
+| **Testing**     | Setting up tests requires many dummy values.                    | You pass one well-defined object to the test.                     |
+| **Maintenance** | Adding one new field breaks every method call.                  | Just add a field to the object without changing the signature.    |
+| **Reusability** | You cannot easily pass the "address" as a unit.                 | The Address object can be passed to any method.                   |
+
+---
