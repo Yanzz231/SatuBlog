@@ -15,7 +15,7 @@ Kelas adalah blueprint untuk membuat objek. Kelas mendefinisikan atribut (proper
 
 ```typescript
 // model/Animal.ts
-class Animal {
+abstract class Animal {
   name: string;
 
   constructor(name: string) {
@@ -41,21 +41,28 @@ export const oopFiles = [
         type: "file",
         name: "index.ts",
         lang: "typescript",
-        code: `import { Cat } from "./model/Cat";
+        code: `// import { Animal } from "./model/Animal";
+import { Cat } from "./model/Cat";
 
-// Member statis — sebelum objek apapun dibuat
-console.log(\`Total nyawa: \${Cat._lives}\`); // 9
+// const animal1 = new Animal("Devon");
+// console.log(animal1.name);
+
+// animal1.name = "Riccy";
+// animal1.makeSound();
+
+// sebelum ada object cat
+console.log(\`Total lives \${Cat._lives}\`);
 
 const cat1 = new Cat(9, "Ginger");
-cat1.makeSound(); // "Ginger sedang mengeong"
-cat1.run();       // "Ginger sedang berlari"
-cat1.run("Sofa"); // "Ginger berlari menuju Sofa"
-cat1.run(10);     // "Ginger berlari dengan kecepatan 10"
+cat1.makeSound();
+cat1.run();
+cat1.run("Sofa");
+cat1.run(10);
 
-const cat2 = new Cat(11, "Jumbo");
+const cat2 = new Cat(11, "jumbo");
 
-// Member statis — setelah 2 objek dibuat
-console.log(\`Total nyawa: \${Cat._lives}\`); // 11`,
+// Setelah ditambah 2 object cat
+console.log(\`Total lives \${Cat._lives}\`);`,
       },
       {
         type: "folder",
@@ -65,26 +72,54 @@ console.log(\`Total nyawa: \${Cat._lives}\`); // 11`,
             type: "file",
             name: "Animal.ts",
             lang: "typescript",
-            code: `export abstract class Animal {
+            code: `abstract class Animal {
+  // access modifier:
+  // public (default) -> member (attribute & methods) dapat diakses di seluruh file
+  // protected -> member hanya bisa diakses di dalam class dan sub-class (children)
+  // private -> member hanya bisa diakses di dalam classnya
+  // readonly -> variabel hanya bisa dibaca tanpa bisa diedit
+
   protected _name: string;
   protected _age: number;
   protected _species: string = "unknown";
 
+  // constructor
   constructor(name: string, age: number = 10, species?: string) {
     this._name = name;
     this._age = age;
     if (species) this._species = species;
   }
 
-  get name(): string { return this._name; }
-  get age(): number  { return this._age; }
+  // getter setter
+  get name(): string {
+    return this._name;
+  }
 
-  set name(v: string) { this._name = v; }
-  set age(v: number)  { this._age = v; }
+  get age(): number {
+    return this._age;
+  }
 
-  // Harus diimplementasikan oleh setiap subkelas
+  get species(): string {
+    return this._species;
+  }
+
+  set name(newName: string) {
+    this._name = newName;
+  }
+
+  set age(newAge: number) {
+    this._age = newAge;
+  }
+
+  set species(newSpecies: string) {
+    this._species = newSpecies;
+  }
+
+  // abstract method
   public abstract makeSound(): void;
-}`,
+}
+
+export { Animal };`,
           },
           {
             type: "file",
@@ -93,42 +128,45 @@ console.log(\`Total nyawa: \${Cat._lives}\`); // 11`,
             code: `import { Animal } from "./Animal";
 import { Running } from "./Running";
 
-export class Cat extends Animal implements Running {
-  static _lives: number = 9; // dibagi ke semua instansi Cat
+class Cat extends Animal implements Running {
+  // static -> member (attributes and methods) dimiliki classnya, dan bukan instance/object
+  static _lives: number = 9;
 
   constructor(lives: number, name: string, age: number = 10, species?: string) {
-    super(name, age, species); // memanggil constructor Animal
+    super(name, age, species);
     Cat._lives += 1;
   }
 
-  public makeSound(): void {
-    console.log(\`\${this.name} sedang mengeong\`);
-  }
-
-  // Signature overload
+  // interface
+  // overloading -> parameternya berbeda
   public run(): void;
   public run(destination: string): void;
   public run(speed: number): void;
 
-  // Satu implementasi yang menangani semua kasus
   public run(input?: number | string): void {
-    if (!input) {
-      console.log(\`\${this.name} sedang berlari\`);
-    } else if (typeof input === "string") {
-      console.log(\`\${this.name} berlari menuju \${input}\`);
-    } else {
-      console.log(\`\${this.name} berlari dengan kecepatan \${input}\`);
-    }
+    if (!input) console.log(\`\${this.name} is running\`);
+    else if (typeof input === "string") console.log(\`\${this.name} is running towards \${input}\`);
+    else if (typeof input === "number") console.log(\`\${this.name} is running at \${input}\`);
   }
-}`,
+
+  // overriding -> methodnya memiliki implementasi yang berbeda-beda
+  // abstract class
+  public makeSound(): void {
+    console.log(\`\${this.name} is meowing\`);
+  }
+}
+
+export { Cat };`,
           },
           {
             type: "file",
             name: "Running.ts",
             lang: "typescript",
-            code: `export interface Running {
+            code: `interface Running {
   run(): void;
-}`,
+}
+
+export { Running };`,
           },
         ],
       },
@@ -136,7 +174,7 @@ export class Cat extends Animal implements Running {
   },
 ];
 
-<FileExplorer files={oopFiles} defaultFile="src/model/Animal.ts" height={400} />
+<FileExplorer files={oopFiles} defaultFile="src/model/Animal.ts" height={420} />
 
 ---
 
@@ -253,13 +291,13 @@ class Cat extends Animal {
 }
 
 // Sebelum objek Cat apapun dibuat
-console.log(`Total nyawa: ${Cat._lives}`); // 9
+console.log(`Total lives ${Cat._lives}`); // 9
 
 const cat1 = new Cat(9, "Ginger");
 const cat2 = new Cat(11, "Jumbo");
 
 // Setelah 2 objek Cat dibuat
-console.log(`Total nyawa: ${Cat._lives}`); // 11
+console.log(`Total lives ${Cat._lives}`); // 11
 ```
 
 > **Catatan:** Akses member statis melalui nama kelas (`Cat._lives`), bukan melalui instansi.
@@ -282,7 +320,7 @@ interface Running {
 class Cat extends Animal implements Running {
   // Wajib mengimplementasikan run() karena interface Running
   public run(): void {
-    console.log(`${this.name} sedang berlari`);
+    console.log(`${this.name} is running`);
   }
 }
 ```
@@ -303,18 +341,14 @@ Overloading memungkinkan sebuah metode menerima tipe atau jumlah parameter yang 
 class Cat extends Animal implements Running {
   // Signature overload
   public run(): void;
-  public run(tujuan: string): void;
-  public run(kecepatan: number): void;
+  public run(destination: string): void;
+  public run(speed: number): void;
 
   // Satu implementasi yang menangani semua kasus
   public run(input?: number | string): void {
-    if (!input) {
-      console.log(`${this.name} sedang berlari`);
-    } else if (typeof input === "string") {
-      console.log(`${this.name} berlari menuju ${input}`);
-    } else if (typeof input === "number") {
-      console.log(`${this.name} berlari dengan kecepatan ${input}`);
-    }
+    if (!input) console.log(`${this.name} is running`);
+    else if (typeof input === "string") console.log(`${this.name} is running towards ${input}`);
+    else if (typeof input === "number") console.log(`${this.name} is running at ${input}`);
   }
 }
 ```
@@ -322,9 +356,9 @@ class Cat extends Animal implements Running {
 Penggunaan:
 
 ```typescript
-cat1.run();        // "Ginger sedang berlari"
-cat1.run("Sofa"); // "Ginger berlari menuju Sofa"
-cat1.run(10);     // "Ginger berlari dengan kecepatan 10"
+cat1.run();        // "Ginger is running"
+cat1.run("Sofa"); // "Ginger is running towards Sofa"
+cat1.run(10);     // "Ginger is running at 10"
 ```
 
 ---
@@ -339,7 +373,7 @@ public abstract makeSound(): void;
 
 // model/Cat.ts — override:
 public makeSound(): void {
-  console.log(`${this.name} sedang mengeong`);
+  console.log(`${this.name} is meowing`);
 }
 ```
 
