@@ -1,0 +1,185 @@
+---
+title: Kibana
+sidebar_position: 2
+description: Panduan instalasi dan konfigurasi Kibana untuk visualisasi data Elasticsearch.
+---
+
+# Kibana
+
+Kibana adalah antarmuka visualisasi data untuk Elasticsearch. Digunakan untuk eksplorasi data, membuat dashboard, dan monitoring cluster.
+
+## Prerequisites
+
+| Komponen | Versi |
+|----------|-------|
+| OS | RHEL / CentOS / Rocky Linux 8+ |
+| Java | OpenJDK 11 |
+| Kibana | 8.x |
+| Elasticsearch | 8.x (harus sudah berjalan) |
+
+---
+
+## Instalasi (VPS)
+
+### Step 1: Install Kibana
+
+```bash
+# Install Java 11
+sudo yum install java-11-openjdk java-11-openjdk-devel
+
+# Import GPG Key Elasticsearch
+sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+# Tambah Elastic Repository
+sudo tee /etc/yum.repos.d/elasticsearch.repo <<EOF
+[elasticsearch]
+name=Elasticsearch repository for 8.x packages
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=0
+autorefresh=1
+type=rpm-md
+EOF
+
+# Install Kibana
+sudo yum install kibana
+```
+
+### Step 2: Konfigurasi
+
+**Generate password untuk `kibana_system`:**
+
+```bash
+sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system -i
+```
+
+**Generate encryption keys:**
+
+```bash
+sudo /usr/share/kibana/bin/kibana-encryption-keys generate
+```
+
+Salin output key-nya, lalu masukkan ke `kibana.yml`:
+
+```bash
+sudo nano /etc/kibana/kibana.yml
+```
+
+```yaml title="/etc/kibana/kibana.yml"
+xpack.reporting.encryptionKey: "YOUR_KEY"
+xpack.security.encryptionKey: "YOUR_KEY"
+xpack.encryptedSavedObjects.encryptionKey: "YOUR_KEY"
+
+server.host: "0.0.0.0"
+server.port: 5601
+elasticsearch.hosts: ["http://localhost:9200"]
+
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "YOUR_PASSWORD"
+
+logging:
+  appenders:
+    file:
+      type: file
+      fileName: /var/log/kibana/kibana.log
+      layout:
+        type: json
+  root:
+    appenders:
+      - default
+      - file
+
+pid.file: /run/kibana/kibana.pid
+```
+
+### Systemctl
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable kibana
+sudo systemctl start kibana
+sudo systemctl status kibana
+sudo systemctl stop kibana
+
+# Realtime log
+sudo journalctl -u kibana -f
+```
+
+---
+
+## Docker
+
+Untuk environment **lokal / development**, jalankan Kibana via Docker. Pastikan Elasticsearch sudah berjalan sebelumnya.
+
+export const kibanaFiles = [
+  {
+    type: "file",
+    name: "docker-compose.yml",
+    lang: "yaml",
+    code: `version: "3.8"
+
+services:
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    ports:
+      - "5601:5601"
+    volumes:
+      - kibanadata:/usr/share/kibana/data
+    environment:
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=\${ELASTIC_HOSTS}
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=\${KIBANA_PASSWORD}
+    mem_limit: 1073741824
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+volumes:
+  kibanadata:`,
+  },
+  {
+    type: "file",
+    name: ".env",
+    lang: "bash",
+    code: `ELASTIC_HOSTS=http://your-elasticsearch-host:9200
+KIBANA_PASSWORD=changeme`,
+  },
+];
+
+<FileExplorer files={kibanaFiles} defaultFile="docker-compose.yml" height={280} />
+
+**Akses:** `http://localhost:5601`
+
+**Jalankan:**
+
+```bash
+docker compose up -d
+
+# Log realtime
+docker compose logs -f kibana
+
+# Restart
+docker compose restart kibana
+```
+
+---
+
+## Troubleshooting
+
+```bash
+# Cek port Kibana
+sudo netstat -tlnp | grep 5601
+
+# Cek port Elasticsearch
+sudo netstat -tlnp | grep 9200
+
+# Log container (Docker)
+docker compose logs kibana --tail=100
+
+# Masuk ke shell container
+docker exec -it <container-name> bash
+```

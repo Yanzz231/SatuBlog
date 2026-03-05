@@ -1,0 +1,307 @@
+---
+title: Logstash
+sidebar_position: 3
+description: Panduan instalasi dan konfigurasi Logstash untuk pipeline data dari SQL Server ke Elasticsearch.
+---
+
+# Logstash
+
+Logstash adalah data processing pipeline yang mengumpulkan data dari berbagai sumber, melakukan transformasi, lalu mengirimkannya ke Elasticsearch sebagai output.
+
+## Prerequisites
+
+| Komponen | Versi |
+|----------|-------|
+| OS | RHEL / CentOS / Rocky Linux 8+ |
+| Java | OpenJDK 11 |
+| Logstash | 8.x |
+| JDBC Driver | mssql-jdbc 12.8.1.jre8 |
+
+---
+
+## Instalasi (VPS)
+
+### Step 1: Install Logstash
+
+```bash
+# Install Java 11
+sudo yum install java-11-openjdk java-11-openjdk-devel
+
+# Import GPG Key Elasticsearch
+sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+# Tambah Elastic Repository
+sudo tee /etc/yum.repos.d/elasticsearch.repo <<EOF
+[elasticsearch]
+name=Elasticsearch repository for 8.x packages
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=0
+autorefresh=1
+type=rpm-md
+EOF
+
+# Install Logstash
+sudo dnf install logstash
+```
+
+### Step 2: Download JDBC Driver
+
+JDBC driver diperlukan agar Logstash bisa terkoneksi ke SQL Server (MSSQL).
+
+```bash
+# Buat folder vendor
+sudo mkdir -p /usr/share/logstash/vendor/jars/
+
+# Download MSSQL JDBC Driver
+cd /usr/share/logstash/vendor/jars/
+sudo wget https://repo1.maven.org/maven2/com/microsoft/sqlserver/mssql-jdbc/12.8.1.jre8/mssql-jdbc-12.8.1.jre8.jar
+
+# Set permission
+sudo chmod 644 /usr/share/logstash/vendor/jars/mssql-jdbc-12.8.1.jre8.jar
+sudo chown logstash:logstash /usr/share/logstash/vendor/jars/mssql-jdbc-12.8.1.jre8.jar
+
+# Verifikasi
+ls -la /usr/share/logstash/vendor/jars/
+```
+
+### Step 3: Konfigurasi
+
+**JVM Options** — sesuaikan heap size dengan RAM server:
+
+```bash
+sudo nano /etc/logstash/jvm.options
+```
+
+```
+-Xms512m
+-Xmx512m
+```
+
+**Pipelines:**
+
+```bash
+sudo nano /etc/logstash/pipelines.yml
+```
+
+```yaml title="/etc/logstash/pipelines.yml"
+- pipeline.id: products_pipeline
+  path.config: "/etc/logstash/conf.d/products.conf"
+  pipeline.workers: 1
+
+- pipeline.id: users_pipeline
+  path.config: "/etc/logstash/conf.d/users.conf"
+  pipeline.workers: 1
+
+- pipeline.id: orders_pipeline
+  path.config: "/etc/logstash/conf.d/orders.conf"
+  pipeline.workers: 1
+
+- pipeline.id: transactions_pipeline
+  path.config: "/etc/logstash/conf.d/transactions.conf"
+  pipeline.workers: 1
+
+- pipeline.id: analytics_pipeline
+  path.config: "/etc/logstash/conf.d/analytics.conf"
+  pipeline.workers: 1
+```
+
+**Transfer file konfigurasi ke VPS:**
+
+```bash
+# Dari lokal ke VPS
+scp -P 22 ./conf.d/*.conf user@your-server:~
+
+# Pindah ke direktori Logstash
+sudo mv ~/*.conf /etc/logstash/conf.d/
+
+# Set permission
+sudo chown logstash:logstash /etc/logstash/conf.d/*.conf
+sudo chmod 644 /etc/logstash/conf.d/*.conf
+
+# Verifikasi
+ls -la /etc/logstash/conf.d/
+```
+
+### Systemctl
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable logstash
+sudo systemctl start logstash
+sudo systemctl status logstash
+sudo systemctl stop logstash
+
+# Realtime log
+sudo journalctl -u logstash -f
+```
+
+---
+
+## Docker
+
+Untuk environment **lokal / development**, jalankan Logstash via Docker. Pastikan Elasticsearch sudah berjalan sebelumnya.
+
+export const logstashFiles = [
+  {
+    type: "folder",
+    name: "logstash",
+    children: [
+      {
+        type: "folder",
+        name: "config",
+        children: [
+          {
+            type: "file",
+            name: "logstash.yml",
+            lang: "yaml",
+            code: `http.host: "0.0.0.0"
+xpack.monitoring.enabled: false`,
+          },
+          {
+            type: "file",
+            name: "pipelines.yml",
+            lang: "yaml",
+            code: `- pipeline.id: products_pipeline
+  path.config: "/usr/share/logstash/pipeline/products.conf"
+  pipeline.workers: 1
+
+- pipeline.id: users_pipeline
+  path.config: "/usr/share/logstash/pipeline/users.conf"
+  pipeline.workers: 1
+
+- pipeline.id: orders_pipeline
+  path.config: "/usr/share/logstash/pipeline/orders.conf"
+  pipeline.workers: 1
+
+- pipeline.id: transactions_pipeline
+  path.config: "/usr/share/logstash/pipeline/transactions.conf"
+  pipeline.workers: 1
+
+- pipeline.id: analytics_pipeline
+  path.config: "/usr/share/logstash/pipeline/analytics.conf"
+  pipeline.workers: 1`,
+          },
+        ],
+      },
+      {
+        type: "folder",
+        name: "pipeline",
+        children: [
+          {
+            type: "file",
+            name: "products.conf",
+            lang: "ruby",
+            code: `input {
+  jdbc {
+    jdbc_driver_library => "/usr/share/logstash/vendor/jars/mssql-jdbc-12.8.1.jre8.jar"
+    jdbc_driver_class   => "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+    jdbc_connection_string => "jdbc:sqlserver://YOUR_DB_HOST:1433;databaseName=YOUR_DB;encrypt=true;trustServerCertificate=true"
+    jdbc_user           => "YOUR_USER"
+    jdbc_password       => "YOUR_PASSWORD"
+    statement           => "SELECT * FROM dbo.products WHERE updated_at > :sql_last_value"
+    use_column_value    => true
+    tracking_column     => "updated_at"
+    tracking_column_type => "timestamp"
+    schedule            => "*/5 * * * *"
+    jdbc_paging_enabled => true
+    jdbc_page_size      => 500
+  }
+}
+
+filter {
+  mutate {
+    remove_field => ["@version", "event"]
+  }
+}
+
+output {
+  elasticsearch {
+    hosts    => ["\${ELASTIC_HOSTS}"]
+    user     => "\${ELASTIC_USER}"
+    password => "\${ELASTIC_PASSWORD}"
+    ssl_certificate_authorities => "/usr/share/logstash/config/certs/ca/ca.crt"
+    index    => "products-%{+YYYY.MM.dd}"
+    document_id => "%{id}"
+  }
+}`,
+          },
+        ],
+      },
+      {
+        type: "folder",
+        name: "drivers",
+        children: [
+          {
+            type: "file",
+            name: "mssql-jdbc-12.8.1.jre8.jar",
+            lang: "bash",
+            code: `# Download dengan wget
+wget https://repo1.maven.org/maven2/com/microsoft/sqlserver/mssql-jdbc/12.8.1.jre8/mssql-jdbc-12.8.1.jre8.jar`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    type: "file",
+    name: "docker-compose.yml",
+    lang: "yaml",
+    code: `version: "3.8"
+
+services:
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.4
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/drivers:/usr/share/logstash/vendor/jars:ro
+    environment:
+      - xpack.monitoring.enabled=false
+      - ELASTIC_USER=elastic
+      - ELASTIC_PASSWORD=\${ELASTIC_PASSWORD}
+      - ELASTIC_HOSTS=\${ELASTIC_HOSTS}
+    mem_limit: 1073741824`,
+  },
+  {
+    type: "file",
+    name: ".env",
+    lang: "bash",
+    code: `ELASTIC_PASSWORD=changeme
+ELASTIC_HOSTS=https://your-elasticsearch-host:9200`,
+  },
+];
+
+<FileExplorer files={logstashFiles} defaultFile="docker-compose.yml" height={420} />
+
+**Jalankan:**
+
+```bash
+docker compose up -d
+
+# Log realtime
+docker compose logs -f logstash
+
+# Restart
+docker compose restart logstash
+```
+
+---
+
+## Troubleshooting
+
+```bash
+# Kill paksa proses Logstash (VPS)
+sudo pkill -9 -f logstash
+
+# Cek port Elasticsearch
+sudo netstat -tlnp | grep 9200
+
+# Log container (Docker)
+docker compose logs logstash --tail=100
+
+# Masuk ke shell container
+docker exec -it <container-name> bash
+```
