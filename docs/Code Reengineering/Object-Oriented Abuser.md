@@ -138,7 +138,7 @@ class CalculationTask {
 
 ---
 
-## Refused Bad Request
+## Refused Bequest
 
 If a subclass uses only some of the methods and properties inherited from its parents, the hierarchy is off-kilter. The unneeded methods may simply go unused or be redefined and give off exceptions.
 
@@ -188,7 +188,7 @@ public void processUpdate(UpdateUserRequest request) {
 
 ### Comparasion (Before & After)
 
-| Feature         | Bad Request (Before)                                                 | Refactored (After)                                                     |
+| Feature         | Bad Bequest (Before)                                                 | Refactored (After)                                                     |
 | --------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | **Readibility** | You can't tell what data the method needs without reading the body.  | The method signature clearly defines the required data.                |
 | **Testing**     | You must build complex maps or mock raw inputs for every test.       | You just instantiate a single Request object with the test data.       |
