@@ -95,7 +95,7 @@
 .preview {
   flex: 1;
   min-width: 0;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -105,19 +105,25 @@
   border-radius: 0 !important;
   margin-bottom: 0 !important;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .preview :global(div[class*="codeBlockTitle"]) {
   border-radius: 0 !important;
+  flex-shrink: 0;
 }
 
 .preview :global(div[class*="codeBlockContent"]) {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
 }
 
 .preview :global(pre) {
   border-radius: 0 !important;
+  margin-bottom: 0 !important;
   min-height: 100%;
 }
 

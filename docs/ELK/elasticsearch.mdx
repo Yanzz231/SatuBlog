@@ -1,0 +1,278 @@
+---
+title: Elasticsearch
+sidebar_position: 1
+description: Panduan instalasi dan konfigurasi Elasticsearch sebagai search engine dan penyimpanan data utama di ELK Stack.
+---
+
+# Elasticsearch
+
+Elasticsearch adalah distributed search dan analytics engine berbasis Apache Lucene. Berfungsi sebagai penyimpanan data utama sekaligus mesin pencarian di ELK Stack.
+
+## Prerequisites
+
+| Komponen | Versi |
+|----------|-------|
+| OS | RHEL / CentOS / Rocky Linux 8+ |
+| Java | OpenJDK 11 |
+| Elasticsearch | 8.x |
+
+---
+
+## Instalasi (VPS)
+
+### Step 1: Install Elasticsearch
+
+```bash
+# Install Java 11
+sudo yum install java-11-openjdk java-11-openjdk-devel
+
+# Import GPG Key
+sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+# Tambah Elastic Repository
+sudo tee /etc/yum.repos.d/elasticsearch.repo <<EOF
+[elasticsearch]
+name=Elasticsearch repository for 8.x packages
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=0
+autorefresh=1
+type=rpm-md
+EOF
+
+# Install Elasticsearch
+sudo yum install elasticsearch
+```
+
+### Step 2: Set Password
+
+```bash
+# Set password manual (interactive)
+sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -i
+
+# Generate password otomatis
+sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
+```
+
+### Step 3: Konfigurasi
+
+```bash
+sudo nano /etc/elasticsearch/elasticsearch.yml
+```
+
+```yaml title="/etc/elasticsearch/elasticsearch.yml"
+# Cluster
+cluster.name: my-cluster
+node.name: node-master-01
+
+# Paths
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+
+# Network
+network.host: 0.0.0.0
+http.host: 0.0.0.0
+transport.host: 0.0.0.0
+http.port: 9200
+
+# Discovery
+cluster.initial_master_nodes: ["node-master-01"]
+
+# Security
+xpack.security.enabled: true
+xpack.security.enrollment.enabled: true
+xpack.security.authc.reserved_realm.enabled: false
+
+xpack.security.http.ssl.enabled: false
+xpack.security.audit.enabled: false
+
+xpack.security.transport.ssl:
+  enabled: true
+  verification_mode: certificate
+  keystore.path: certs/transport.p12
+  truststore.path: certs/transport.p12
+```
+
+#### Penjelasan Konfigurasi
+
+**Cluster**
+
+| Key | Keterangan |
+|-----|------------|
+| `cluster.name` | Nama cluster. Semua node yang ingin bergabung ke cluster yang sama harus memiliki nama cluster yang identik. |
+| `node.name` | Nama unik node ini di dalam cluster. Digunakan untuk identifikasi di log dan monitoring. |
+
+**Paths**
+
+| Key | Keterangan |
+|-----|------------|
+| `path.data` | Lokasi penyimpanan data index (dokumen, shard). |
+| `path.logs` | Lokasi file log Elasticsearch. |
+
+**Network**
+
+| Key | Keterangan |
+|-----|------------|
+| `network.host` | Bind address untuk semua interface (HTTP + transport). `0.0.0.0` artinya menerima koneksi dari semua IP. |
+| `http.host` | Bind address khusus untuk HTTP API (port 9200). Override `network.host` untuk HTTP. |
+| `transport.host` | Bind address untuk komunikasi antar-node di dalam cluster. |
+| `http.port` | Port yang digunakan untuk HTTP REST API. Default `9200`. |
+
+**Discovery**
+
+| Key | Keterangan |
+|-----|------------|
+| `cluster.initial_master_nodes` | Daftar node yang boleh menjadi master saat cluster pertama kali dibentuk (bootstrap). Hanya dipakai sekali — hapus setelah cluster terbentuk untuk mencegah split-brain. |
+
+**Security**
+
+| Key | Keterangan |
+|-----|------------|
+| `xpack.security.enabled` | Mengaktifkan fitur keamanan (autentikasi, otorisasi). Wajib `true` di production. |
+| `xpack.security.enrollment.enabled` | Mengizinkan node/Kibana baru bergabung ke cluster menggunakan enrollment token. |
+| `xpack.security.authc.reserved_realm.enabled` | Mengontrol apakah built-in user (`elastic`, `kibana_system`, dll) aktif. `false` = nonaktifkan built-in realm (biasanya saat pakai realm kustom). |
+| `xpack.security.http.ssl.enabled` | SSL untuk koneksi HTTP API (port 9200). `false` = koneksi plaintext, cocok untuk internal network. |
+| `xpack.security.audit.enabled` | Mencatat semua aktivitas autentikasi & otorisasi ke audit log. Berguna untuk compliance, tapi berdampak ke performa. |
+| `xpack.security.transport.ssl.enabled` | SSL untuk komunikasi antar-node. Wajib diaktifkan agar node tidak bisa disusupi sembarang node dari luar. |
+| `verification_mode: certificate` | Validasi sertifikat transport — memastikan sertifikat valid tapi tidak perlu cocok hostname. |
+| `keystore.path` | Path file `.p12` yang berisi private key + sertifikat node ini untuk transport SSL. |
+| `truststore.path` | Path file `.p12` yang berisi CA certificate — digunakan untuk memverifikasi node lain. |
+
+### Step 4: Service File
+
+Agar Elasticsearch otomatis restart jika crash:
+
+```bash
+sudo systemctl edit elasticsearch --full
+```
+
+Tambahkan di dalam blok `[Service]`:
+
+```ini
+Restart=always
+RestartSec=30
+StartLimitBurst=5
+StartLimitInterval=300
+```
+
+```bash
+sudo systemctl daemon-reload
+```
+
+### Systemctl
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable elasticsearch
+sudo systemctl start elasticsearch
+sudo systemctl status elasticsearch
+sudo systemctl stop elasticsearch
+
+# Realtime log
+sudo journalctl -u elasticsearch -f
+```
+
+### User Management
+
+```bash
+# Tambah user baru dengan role superuser
+sudo /usr/share/elasticsearch/bin/elasticsearch-users useradd my-admin -p 'password' -r superuser
+
+# Tambah role kibana_system ke user
+sudo /usr/share/elasticsearch/bin/elasticsearch-users roles my-admin -a kibana_system
+```
+
+---
+
+## Docker
+
+Untuk environment **lokal / development**.
+
+export const elasticsearchFiles = [
+  {
+    type: "file",
+    name: "docker-compose.yml",
+    lang: "yaml",
+    code: `version: "3.8"
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    environment:
+      - node.name=node-master-01
+      - cluster.name=my-cluster
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=\${ELASTIC_PASSWORD}
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - xpack.license.self_generated.type=basic
+    mem_limit: 1073741824
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:\${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+volumes:
+  esdata:`,
+  },
+  {
+    type: "file",
+    name: ".env",
+    lang: "bash",
+    code: `ELASTIC_PASSWORD=changeme`,
+  },
+];
+
+<FileExplorer files={elasticsearchFiles} defaultFile="docker-compose.yml" height={280} />
+
+:::note
+`xpack.security.http.ssl.enabled: false` dinonaktifkan agar mudah diakses di lokal tanpa sertifikat. Untuk production, aktifkan SSL.
+:::
+
+**Akses:** `http://localhost:9200`
+Login: `elastic` / `ELASTIC_PASSWORD`
+
+**Jalankan:**
+
+```bash
+docker compose up -d
+
+# Log realtime
+docker compose logs -f elasticsearch
+
+# Restart
+docker compose restart elasticsearch
+```
+
+---
+
+## Troubleshooting
+
+```bash
+# Kill paksa proses Elasticsearch (VPS)
+sudo pkill -f elasticsearch
+
+# Cek port
+sudo netstat -tlnp | grep 9200
+
+# Log container (Docker)
+docker compose logs elasticsearch --tail=100
+
+# Masuk ke shell container
+docker exec -it <container-name> bash
+
+# Cek cluster health
+curl -u elastic:changeme http://localhost:9200/_cluster/health?pretty
+```
