@@ -176,20 +176,6 @@ print(f"molecular_weight = {molecular_weight(seq)}")`,
 
 ## Ringkasan
 
-```mermaid
-flowchart TB
-    seq["Seq('GCTAGCATTAGCTAGCCGGTTAATTA')"]
-
-    seq --> gc["gc_fraction(seq)\nKomposisi GC/AT"]
-    seq --> tm["Melting Temperature"]
-    seq --> mw["molecular_weight(seq)\nBerat Molekul"]
-
-    tm --> w["Tm_Wallace()\nWallace Rules"]
-    tm --> g["Tm_GC()\nGC Rules"]
-    tm --> nn["Tm_NN()\nNearest Neighbor"]
-    tm --> custom["TM_Wallace()\nFormula Manual"]
-```
-
 | Fungsi | Modul | Deskripsi |
 | ------ | ----- | --------- |
 | `gc_fraction(seq)` | `Bio.SeqUtils` | Proporsi GC (0–1) |
