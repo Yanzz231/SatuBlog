@@ -143,10 +143,7 @@ class CalculationTask {
 If a subclass uses only some of the methods and properties inherited from its parents, the hierarchy is off-kilter. The unneeded methods may simply go unused or be redefined and give off exceptions.
 
 ### Problem 
-
-Someone was motivated to create inheritance between classes only by the desire to reuse the code in a superclass. But the superclass and subclass are completely different.
-
-![Bad Request](https://refactoring.guru/images/refactoring/content/smells/refused-bequest-02-1.5x.png)
+Because superclass and subclass are completely different, it violates Liskov Subtituion, and also it will make non-sense if we compare it with real life situation.
 
 ### Example 
 
@@ -199,3 +196,64 @@ public void processUpdate(UpdateUserRequest request) {
 | **Reusability** | The parsing logic is trapped inside the method.                      | The Request object can be reused by controllers, services, and clients.|
 
 ---
+
+## Alternative Classes with Different Interfaces
+
+Two classes perform identical functions but have different method names.
+
+### Problem
+
+Because the two methods or more are identical, but we write it with different names. it will make redudancy. 
+
+### Example 
+
+```java
+// First Service
+class FedExShipping {
+    public void sendPackage(String destination, double weight) {
+        System.out.println("FedEx sending to " + destination);
+    }
+}
+
+// Second Service - Same logic, different names
+class UPSExpress {
+    public void deliverItem(String address, double mass) {
+        System.out.println("UPS delivering to " + address);
+    }
+}
+```
+
+### Solution
+
+Because they're actually the same thing (we called it the same thing, because it will operate similiarly). We can make an abstract class or interface, let say: Shipping with abstract function. These two classes will inherit the shipping class, also override the method. 
+
+### Example Solution
+
+```java
+interface ShippingService {
+    void ship(String address, double weight);
+}
+
+class FedExAdapter implements ShippingService {
+    private FedExShipping fedEx = new FedExShipping();
+    public void ship(String address, double weight) {
+        fedEx.sendPackage(address, weight);
+    }
+}
+
+class UPSAdapter implements ShippingService {
+    private UPSExpress ups = new UPSExpress();
+    public void ship(String address, double weight) {
+        ups.deliverItem(address, weight);
+    }
+}
+```
+
+### Comparasion (Before & After)
+
+| Feature         | Alternative Classes With Different Interfaces(Before)                                 | Refactored (After)                                                             |
+| --------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Readibility** | Developers must learn two different sets of commands for the same task.               | One interface makes the code's intent instantly clear.                         |   
+| **Testing**     | You have to write separate tests for every class because they don't share a type.     | You can write one test suite that works for any `ShippingService`.             |
+| **Maintenance** | If you add a third service (like DHL), you have to change all the code that calls it. | Just plug in a new class that implements the interface; no other code changes. |
+| **Reusability** | Logic written for FedEx cannot be used for UPS without rewriting.                     | Any logic using the interface works with any shipping provider.                |
