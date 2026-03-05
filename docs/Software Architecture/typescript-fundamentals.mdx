@@ -1,0 +1,710 @@
+---
+sidebar_position: 1
+title: Dasar-Dasar TypeScript
+---
+
+# Dasar-Dasar TypeScript
+
+**Pengenalan TypeScript dan konsep-konsep dasarnya.**
+
+TypeScript adalah superset dari JavaScript yang menambahkan _static typing_. Berbeda dari JavaScript yang bersifat dinamis, TypeScript mengharuskan deklarasi tipe secara eksplisit — membuat kode lebih aman dan mudah dipelihara.
+
+---
+
+## Persiapan Proyek
+
+Instal dependensi yang dibutuhkan:
+
+```bash npm2yarn
+npm init -y
+npm install typescript
+npm install -D @types/node
+npm install -D ts-node
+```
+
+Konfigurasi script di `package.json`:
+
+```json
+{
+  "scripts": {
+    "start": "ts-node src/main.ts"
+  }
+}
+```
+
+### Struktur File Proyek
+
+Klik file mana saja di bawah untuk melihat isinya:
+
+export const sesi1Files = [
+  {
+    type: "folder",
+    name: "src",
+    children: [
+      {
+        type: "file",
+        name: "main.ts",
+        lang: "typescript",
+        code: `console.log("Hello Typescript!")
+
+// let/var/const <variable_name> : <datatype> = <value>
+
+let str = "hello world";
+console.log(str);
+
+var str2 : string = "hello world 2";
+console.log(str2);
+
+const PI = 3.14;
+console.log(PI);
+
+// let -> block scope
+function a() {
+  if (true){
+    let blockVar = "I am inside a block";
+    console.log(blockVar);
+  }
+  // console.log(blockVar); // ❌ tidak bisa diakses di luar blok
+}
+
+// var -> function scope
+function b() {
+  if (true){
+    var funcVar = "Im inside a block";
+    console.log(funcVar);
+  }
+  console.log(funcVar); // ✅ masih bisa diakses
+}
+
+// const -> block scope & immutable (tidak bisa diubah valuenya)
+
+
+// Types
+// Basic Types  -> string, number, boolean, array, tuple, enum
+// Advanced Types -> union, any, unknown, void, dll
+
+// Basic Types
+let name1: string = "Devon";
+let umur: number = 19;
+let isStudent: boolean = true;
+let hobbies: string[] = ["Gaming", "Sleeping", "Eating"];
+let address: [string, number] = ["Main Street", 123];
+
+enum Color { // set of constants, by default value indexnya. indexnya mulai dari 0
+  Red = "red",
+  Green = "green",
+  Blue = "blue",
+}
+let favoriteColor: Color = Color.Green;
+
+// Advanced Types
+// union
+const v: string | number = "could be a string or a number";
+// any
+const z: any = "could be everything";
+// unknown
+let u: unknown = 5; // mirip sama any, tapi lebih aman karena dia bakal cek dulu tipenya sebelum digunakan
+// void
+function print(): void {
+  console.log("This function returns nothing");
+}
+print();
+
+// interface
+interface Person { // tipe data custom jadi definisi objek
+  name: string;
+  age?: number; // optional property
+  greet(): void;
+}
+const user: Person = {
+  name: "Devon",
+  age: 20,
+  greet(){
+    console.log(\`Hello my name is \${this.name}\`);
+  }
+}
+
+// control flow
+// selection
+// if-else
+let score: number = 85;
+if (score >= 90){
+  console.log("A");
+} else if (score >= 80) {
+  console.log("B");
+} else {
+  console.log("C");
+}
+
+// switch case
+enum DayOfTheWeek {
+  Monday = 1,
+  Tuesday = 2,
+  Wednesday = 3,
+  Thrusday = 4,
+  Friday = 5,
+  Saturday = 6,
+  Sunday = 7,
+}
+let today: number = DayOfTheWeek.Saturday;
+switch(today){
+  case DayOfTheWeek.Monday:
+  case DayOfTheWeek.Tuesday:
+  case DayOfTheWeek.Wednesday:
+  case DayOfTheWeek.Thrusday:
+  case DayOfTheWeek.Friday:
+    console.log("Weekday");
+    break;
+  case DayOfTheWeek.Saturday:
+  case DayOfTheWeek.Sunday:
+    console.log("Weekend");
+    break;
+  default:
+    console.log("Invalid day");
+}
+
+// ternary
+let age: number = 18;
+let canVote: string = (age >= 18) ? "Yes" : "No";
+console.log(\`Can vote \${canVote}\`);
+
+// loops
+// for loop
+for(let i = 0; i < 5; i++){
+  console.log(i);
+}
+
+// for of loop — iterasi value dari setiap elemen array
+let fruits: string[] = ['apple', 'banana', 'orange'];
+for(let fruit of fruits){
+  console.log(fruit);
+}
+
+// for in — mengiterasi index / key dari elemen dalam array / object
+for(let fruit in fruits){
+  console.log(fruit, fruits[fruit]);
+}
+
+// while loop
+let count: number = 0;
+while(count < 5) {
+  console.log(count);
+  count++;
+}
+
+// do while
+let n = 3;
+do {
+  console.log(n);
+  n--;
+} while (n > 0);
+
+// break
+for(let i = 0; i < 5; i++){
+  if(i === 1){
+    break;
+  }
+  console.log(i);
+}
+
+// functions
+// function tanpa parameter
+function greet(): void {
+  console.log("Hello");
+}
+greet();
+
+// function dengan parameter dan return value
+function calc(length: number, width: number): number {
+  return length * width;
+}
+calc(1, 2);
+
+// function with optional parameter
+function createUser(name: string, age: number, email?: string): object {
+  return {
+    name,
+    age,
+    email: email ?? "No email provided",
+  }
+}
+
+// function with default parameter
+function greetUser(name: string, greeting: string = "Hello"): string {
+  return \`\${greeting}, \${name}\`;
+}
+
+// expression
+const multiply = function(x: number, y: number): number {
+  return x * y;
+}
+multiply(1, 2);
+
+const divide = (x: number, y: number): number => {
+  return x / y;
+}
+divide(2, 1);
+
+// array arrow function
+let numbers: number[] = [1, 2, 3, 4, 5];
+// map -> buat array baru hasil transformasi array lama
+let doubled = numbers.map((num: number) => num * 2);
+console.log(doubled);
+// filter -> buat array baru yang memenuhi kondisi
+let evens = numbers.filter((num: number) => num % 2 === 0);
+console.log(evens);
+// reduce -> proses seluruh array jadi sebuah nilai tunggal
+let sum = numbers.reduce((acc: number, curr: number) => acc + curr, 0);
+console.log(sum);
+// forEach
+numbers.forEach((num: number) => console.log(num));`,
+      },
+    ],
+  },
+  {
+    type: "file",
+    name: "package.json",
+    lang: "json",
+    code: `{
+  "name": "sesi1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node src/main.ts"
+  },
+  "dependencies": {
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.1",
+    "ts-node": "^10.9.2"
+  },
+  "license": "ISC"
+}`,
+  },
+  {
+    type: "file",
+    name: "tsconfig.json",
+    lang: "json",
+    code: `{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}`,
+  },
+];
+
+<FileExplorer files={sesi1Files} defaultFile="src/main.ts" height={420} />
+
+| File                | Kegunaan                                                     |
+| ------------------- | ------------------------------------------------------------ |
+| `package.json`      | File root proyek, berisi dependensi dan script               |
+| `package-lock.json` | Mengunci versi dependensi agar tetap konsisten               |
+| `node_modules/`     | Folder tempat dependensi disimpan                            |
+| `tsconfig.json`     | Konfigurasi compiler TypeScript                              |
+
+---
+
+## Variabel
+
+TypeScript mendukung tiga cara mendeklarasikan variabel, masing-masing dengan lingkup (_scope_) yang berbeda.
+
+```typescript
+// Sintaks: let/var/const <nama> : <tipe> = <nilai>
+
+let str = "hello world"; // inferensi tipe (otomatis string)
+var str2: string = "hello world 2"; // tipe eksplisit
+const PI = 3.14; // konstanta, tidak bisa diubah nilainya
+```
+
+### let vs var vs const
+
+| Keyword | Lingkup        | Bisa Diubah? |
+| ------- | -------------- | ------------ |
+| `let`   | Block scope    | Ya           |
+| `var`   | Function scope | Ya           |
+| `const` | Block scope    | Tidak        |
+
+```typescript
+// let -> hanya bisa diakses di dalam blok {}
+function a() {
+  if (true){
+    let blockVar = "I am inside a block";
+    console.log(blockVar); // ✅ OK
+  }
+  // console.log(blockVar); // ❌ Error: tidak bisa diakses di luar blok
+}
+
+// var -> bisa diakses di seluruh fungsi
+function b() {
+  if (true){
+    var funcVar = "Im inside a block";
+    console.log(funcVar); // ✅ OK
+  }
+  console.log(funcVar); // ✅ OK (masih bisa diakses)
+}
+```
+
+---
+
+## Tipe Data
+
+### Tipe Dasar
+
+Tipe yang paling sering digunakan:
+
+```typescript
+let name1: string = "Devon"; // teks
+let umur: number = 19; // angka
+let isStudent: boolean = true; // true/false
+let hobbies: string[] = ["Gaming", "Sleeping", "Eating"]; // array of string
+let address: [string, number] = ["Main Street", 123]; // tuple
+```
+
+#### Enum
+
+Kumpulan konstanta bernama. Berguna untuk merepresentasikan sekumpulan pilihan yang tetap:
+
+```typescript
+enum Color { // by default value indexnya mulai dari 0
+  Red = "red",
+  Green = "green",
+  Blue = "blue",
+}
+
+let favoriteColor: Color = Color.Green;
+console.log(favoriteColor); // "green"
+```
+
+> **Catatan:** Secara default, nilai enum dimulai dari indeks `0`. Kamu bisa menggantinya dengan nilai kustom seperti contoh di atas.
+
+### Tipe Lanjutan
+
+Tipe yang lebih fleksibel untuk kasus-kasus tertentu:
+
+```typescript
+// Union — bisa berupa string ATAU number
+const v: string | number = "could be a string or a number";
+
+// Any — bisa apa saja (hindari jika memungkinkan)
+const z: any = "could be everything";
+
+// Unknown — mirip any, tapi lebih aman karena TypeScript
+// memaksamu untuk memeriksa tipe sebelum menggunakannya
+let u: unknown = 5;
+
+// Void — untuk fungsi yang tidak mengembalikan nilai
+function print(): void {
+  console.log("This function returns nothing");
+}
+```
+
+| Tipe      | Deskripsi                     | Kapan Digunakan                          |
+| --------- | ----------------------------- | ---------------------------------------- |
+| `string`  | Teks                          | Nama, alamat, pesan                      |
+| `number`  | Integer & float               | Umur, harga, kalkulasi                   |
+| `boolean` | true / false                  | Status, flag                             |
+| `array`   | Kumpulan nilai                | Daftar data                              |
+| `tuple`   | Array dengan tipe tetap       | Koordinat, pasangan key-value            |
+| `enum`    | Konstanta bernama             | Hari, status, kategori                   |
+| `union`   | Beberapa kemungkinan tipe     | Input yang fleksibel                     |
+| `any`     | Tanpa batasan tipe            | Migrasi dari JS (hindari penggunaan)     |
+| `unknown` | Bebas tapi aman               | Data eksternal / respons API             |
+| `void`    | Tidak ada nilai kembalian     | Fungsi tanpa return                      |
+
+---
+
+## Interface
+
+Interface mendefinisikan "bentuk" dari sebuah objek — seperti blueprint atau kontrak.
+
+```typescript
+interface Person { // tipe data custom — definisi objek
+  name: string;
+  age?: number; // optional property
+  greet(): void;
+}
+
+const user: Person = {
+  name: "Devon",
+  age: 20,
+  greet() {
+    console.log(`Hello my name is ${this.name}`);
+  },
+};
+
+user.greet(); // "Hello my name is Devon"
+```
+
+> **Tips:** Gunakan interface untuk mendefinisikan struktur data yang dipakai ulang di banyak tempat dalam kode.
+
+---
+
+## Alur Kontrol
+
+### If-Else
+
+```typescript
+let score: number = 85;
+
+if (score >= 90) {
+  console.log("A");
+} else if (score >= 80) {
+  console.log("B");
+} else {
+  console.log("C");
+}
+// Output: "B"
+```
+
+### Switch Case
+
+Gunakan `switch` saat memeriksa banyak kondisi terhadap nilai yang sama:
+
+```typescript
+enum DayOfTheWeek {
+  Monday = 1,
+  Tuesday = 2,
+  Wednesday = 3,
+  Thrusday = 4,
+  Friday = 5,
+  Saturday = 6,
+  Sunday = 7,
+}
+
+let today: number = DayOfTheWeek.Saturday;
+
+switch (today) {
+  case DayOfTheWeek.Monday:
+  case DayOfTheWeek.Tuesday:
+  case DayOfTheWeek.Wednesday:
+  case DayOfTheWeek.Thrusday:
+  case DayOfTheWeek.Friday:
+    console.log("Weekday");
+    break;
+  case DayOfTheWeek.Saturday:
+  case DayOfTheWeek.Sunday:
+    console.log("Weekend");
+    break;
+  default:
+    console.log("Invalid day");
+}
+// Output: "Weekend"
+```
+
+### Operator Ternary
+
+Singkatan dari ekspresi if-else sederhana:
+
+```typescript
+let age: number = 18;
+let canVote: string = (age >= 18) ? "Yes" : "No";
+console.log(`Can vote ${canVote}`); // "Can vote Yes"
+```
+
+---
+
+## Perulangan
+
+### For Loop
+
+Perulangan klasik dengan penghitung:
+
+```typescript
+for (let i = 0; i < 5; i++) {
+  console.log(i); // 0, 1, 2, 3, 4
+}
+```
+
+### For...of
+
+Iterasi berdasarkan **nilai** dari setiap elemen array:
+
+```typescript
+let fruits: string[] = ['apple', 'banana', 'orange'];
+
+for (let fruit of fruits) {
+  console.log(fruit); // "apple", "banana", "orange"
+}
+```
+
+### For...in
+
+Iterasi berdasarkan **indeks / kunci** dari array atau objek:
+
+```typescript
+for (let fruit in fruits) {
+  console.log(fruit, fruits[fruit]); // "0 apple", "1 banana", "2 orange"
+}
+```
+
+> **`for...of` vs `for...in`:**
+>
+> - `for...of` → memberikan **nilai** secara langsung
+> - `for...in` → memberikan **indeks / kunci**
+
+### While Loop
+
+```typescript
+let count: number = 0;
+
+while (count < 5) {
+  console.log(count); // 0, 1, 2, 3, 4
+  count++;
+}
+```
+
+### Do...While
+
+Seperti `while`, tapi **selalu dieksekusi setidaknya sekali** sebelum memeriksa kondisi:
+
+```typescript
+let n = 3;
+
+do {
+  console.log(n); // 3, 2, 1
+  n--;
+} while (n > 0);
+```
+
+### Break
+
+```typescript
+// break -> menghentikan perulangan sepenuhnya
+for (let i = 0; i < 5; i++) {
+  if (i === 1) {
+    break; // berhenti saat i = 1
+  }
+  console.log(i); // hanya mencetak: 0
+}
+```
+
+---
+
+## Fungsi
+
+### Fungsi Dasar
+
+```typescript
+// function tanpa parameter
+function greet(): void {
+  console.log("Hello");
+}
+greet();
+```
+
+### Fungsi dengan Parameter dan Nilai Kembalian
+
+```typescript
+function calc(length: number, width: number): number {
+  return length * width;
+}
+
+calc(3, 4); // mengembalikan 12
+```
+
+### Parameter Opsional
+
+Tambahkan `?` untuk membuat parameter bersifat opsional:
+
+```typescript
+function createUser(name: string, age: number, email?: string): object {
+  return {
+    name,
+    age,
+    email: email ?? "No email provided",
+  };
+}
+
+createUser("Devon", 20); // email tidak diberikan
+createUser("Devon", 20, "d@x.com"); // email diberikan
+```
+
+### Parameter Default
+
+Nilai default digunakan saat parameter tidak diisi:
+
+```typescript
+function greetUser(name: string, greeting: string = "Hello"): string {
+  return `${greeting}, ${name}`;
+}
+
+greetUser("Devon"); // "Hello, Devon"
+greetUser("Devon", "Hi"); // "Hi, Devon"
+```
+
+### Function Expression & Arrow Function
+
+```typescript
+// Function Expression
+const multiply = function(x: number, y: number): number {
+  return x * y;
+}
+
+// Arrow Function (lebih ringkas)
+const divide = (x: number, y: number): number => {
+  return x / y;
+}
+
+multiply(3, 4); // 12
+divide(8, 2);   // 4
+```
+
+---
+
+## Method Array
+
+Fungsi bawaan array yang sering dipakai bersama arrow function:
+
+```typescript
+let numbers: number[] = [1, 2, 3, 4, 5];
+
+// map -> buat array baru hasil transformasi array lama
+let doubled = numbers.map((num: number) => num * 2);
+console.log(doubled); // [2, 4, 6, 8, 10]
+
+// filter -> buat array baru yang memenuhi kondisi
+let evens = numbers.filter((num: number) => num % 2 === 0);
+console.log(evens); // [2, 4]
+
+// reduce -> proses seluruh array jadi sebuah nilai tunggal
+let sum = numbers.reduce((acc: number, curr: number) => acc + curr, 0);
+console.log(sum); // 15
+
+// forEach -> jalankan fungsi untuk setiap elemen (tanpa nilai kembalian)
+numbers.forEach((num: number) => console.log(num));
+```
+
+| Method      | Mengembalikan | Tujuan                                  |
+| ----------- | ------------- | --------------------------------------- |
+| `map()`     | Array baru    | Mentransformasi setiap elemen           |
+| `filter()`  | Array baru    | Memfilter elemen berdasarkan kondisi    |
+| `reduce()`  | Satu nilai    | Mengakumulasi semua elemen              |
+| `forEach()` | `void`        | Menjalankan efek samping per elemen     |
+
+---
+
+## Ringkasan
+
+```
+Dasar-Dasar TypeScript
+│
+├── Variabel ─────── let (block) / var (function) / const (immutable)
+├── Tipe Data
+│   ├── Dasar ───── string, number, boolean, array, tuple, enum
+│   └── Lanjutan ── union, any, unknown, void
+├── Interface ────── Blueprint / kontrak untuk bentuk objek
+├── Alur Kontrol ─── if-else, switch, ternary
+├── Perulangan ───── for, for-of, for-in, while, do-while
+└── Fungsi ───────── biasa, param opsional, param default, arrow
+```
