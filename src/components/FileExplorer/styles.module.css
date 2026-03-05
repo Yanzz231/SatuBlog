@@ -1,0 +1,152 @@
+.container {
+  display: flex;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+/* ── Tree panel ───────────────────────────────────────────── */
+
+.tree {
+  width: 210px;
+  min-width: 160px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+}
+
+.treeHeader {
+  padding: 0.45rem 0.875rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ifm-color-emphasis-500);
+  border-bottom: 1px solid var(--vp-c-divider);
+  flex-shrink: 0;
+}
+
+.treeBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 0;
+  cursor: pointer;
+  color: var(--ifm-menu-color);
+  transition:
+    background 0.1s,
+    color 0.1s;
+  user-select: none;
+  outline: none;
+}
+
+.row:hover {
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--vp-c-brand);
+  outline-offset: -2px;
+}
+
+.selected {
+  background: var(--vp-c-brand-soft) !important;
+  color: var(--vp-c-brand) !important;
+  font-weight: 600;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+.name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.4;
+  margin-left: auto;
+  padding-right: 6px;
+}
+
+/* ── Code preview ─────────────────────────────────────────── */
+
+.preview {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview :global(div[class*="codeBlockContainer"]) {
+  border: none !important;
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+  flex: 1;
+}
+
+.preview :global(div[class*="codeBlockTitle"]) {
+  border-radius: 0 !important;
+}
+
+.preview :global(div[class*="codeBlockContent"]) {
+  height: 100%;
+  overflow: auto;
+}
+
+.preview :global(pre) {
+  border-radius: 0 !important;
+  min-height: 100%;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ifm-color-emphasis-400);
+  font-family: var(--ifm-font-family-base);
+  font-size: 0.875rem;
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    height: auto !important;
+  }
+
+  .tree {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--vp-c-divider);
+    max-height: 180px;
+  }
+
+  .preview {
+    min-height: 240px;
+  }
+}
