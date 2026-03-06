@@ -26,7 +26,7 @@ const config: Config = {
         docs: {
           routeBasePath: "/",
           sidebarPath: "./sidebars.ts",
-          editUrl: "https://github.com/satublog/satublog/tree/main/",
+          editUrl: "https://github.com/yanzz231/satublog/tree/main/",
           remarkPlugins: [
             [
               require("@docusaurus/remark-plugin-npm2yarn"),
