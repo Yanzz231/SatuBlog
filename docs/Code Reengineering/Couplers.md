@@ -321,7 +321,7 @@ public class BookingService {
 
 ### Comparasion (Before & After)
 
-| Feature         | Middle Man (Before)                                                                     | Refactored (After)                                                                |
+| Feature         | Incomplete Library Class (Before)                                                                     | Refactored (After)                                                                |
 | --------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | **Readibility** | Business logic is buried under library-specific "math."                                 | The method name `nextBusinessDay` explains the intent clearly.                    |
 | **Testing**     | You have to test the "missing" logic inside every class that uses it.                   | You test the extension/utility once in its own test file.                         |
