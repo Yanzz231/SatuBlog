@@ -1,0 +1,701 @@
+---
+sidebar_position: 4
+title: Dispensables
+---
+
+# Dispensables
+
+**Semua jenis Dispensables, penjelasan, contoh kode nyata, dan cara refactoringnya**
+
+Dispensable adalah sesuatu yang tidak berguna dan tidak diperlukan. Menghapusnya justru membuat code lebih bersih, efisien, dan mudah dipahami.
+
+> Sumber: [Refactoring Guru](https://refactoring.guru/refactoring/smells/dispensables)
+
+---
+
+## Comments
+
+Sebuah method dipenuhi komentar penjelas — biasanya karena code-nya buruk, bukan karena code-nya kompleks.
+
+### Masalah
+
+Komentar berlebihan digunakan untuk **menutupi code yang berantakan**. Komentar juga bisa menjadi "kebohongan" ketika code diupdate tapi komentarnya tidak.
+
+> *"Komentar terbaik adalah nama method atau class yang bagus."*
+
+export const commentFiles = [
+  {
+    type: "folder",
+    name: "comment",
+    children: [
+      {
+        type: "file",
+        name: "MenuPrinter.java",
+        lang: "java",
+        code: `package comment;
+
+import java.util.Scanner;
+
+public class MenuPrinter {
+    public int printMenuAndGetInput(){
+        printHeader();
+        printMenu();
+        return getInput();
+        // Nama method sudah menjelaskan dirinya sendiri
+        // Tidak perlu komentar // Cetak header, // Cetak menu, dll.
+    }
+
+	private int getInput() {
+		int input = 0;
+        Scanner sc = new Scanner(System.in);
+        do {
+            System.out.println("Input [1-4]: ");
+            input = sc.nextInt();
+            sc.nextLine();
+        } while(input < 1 || input > 4);
+
+        sc.close();
+        return input;
+	}
+
+	private void printMenu() {
+		System.out.println("1. Foo");
+        System.out.println("2. Bar");
+        System.out.println("3. Baz");
+        System.out.println("4. Exit");
+	}
+
+	private void printHeader() {
+		System.out.println("====");
+        System.out.println("Menu");
+        System.out.println("====");
+	}
+}`,
+      },
+      {
+        type: "file",
+        name: "Main.java",
+        lang: "java",
+        code: `package comment;
+
+public class Main {
+    public static void main(String[] args) {
+        MenuPrinter menu = new MenuPrinter();
+        int choice = menu.printMenuAndGetInput();
+        System.out.println("Pilihan: " + choice);
+    }
+}`,
+      },
+    ],
+  },
+];
+
+<FileExplorer files={commentFiles} defaultFile="comment/MenuPrinter.java" height={380} />
+
+### Solusi
+
+Pecah method panjang menjadi method-method kecil dengan nama yang deskriptif. Nama method menggantikan komentar.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — satu method panjang dengan komentar penjelas"
+  afterTitle="Sesudah — method-method kecil bernama deskriptif"
+  before={`public class MenuPrinter {
+    public int printMenuAndGetInput() {
+        // Cetak header
+        System.out.println("====");
+        System.out.println("Menu");
+        System.out.println("====");
+
+        // Cetak pilihan menu
+        System.out.println("1. Foo");
+        System.out.println("2. Bar");
+        System.out.println("3. Baz");
+        System.out.println("4. Exit");
+
+        // Validasi dan ambil input user
+        int input = 0;
+        do { input = sc.nextInt(); } while (input < 1 || input > 4);
+        return input;
+    }
+}`}
+  after={`public class MenuPrinter {
+    public int printMenuAndGetInput() {
+        printHeader(); // nama sudah jelas
+        printMenu();   // tidak perlu komentar
+        return getInput();
+    }
+
+    private void printHeader() { /* logika header */ }
+    private void printMenu() { /* logika menu */ }
+    private int getInput() { /* logika input */ }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Harus baca komentar dan code sekaligus | Code terbaca seperti kalimat alami |
+| **Pengujian** | Tidak bisa test komentar; bisa berbohong | Bisa tulis unit test untuk tiap method kecil |
+| **Pemeliharaan** | Komentar sering tidak diupdate saat code berubah | Saat logika berubah, nama method ikut diupdate |
+| **Reusabilitas** | Logika terkurung dalam satu method besar | Method-method kecil bisa dipanggil dari bagian lain |
+
+---
+
+## Duplicate Code
+
+Dua atau lebih fragment code yang hampir identik — biasanya hasil copy-paste.
+
+### Masalah
+
+Code duplikat melanggar prinsip **DRY (Don't Repeat Yourself)**. Ada bug di logika itu? Harus diperbaiki di **semua** tempat. Kalau lupa satu tempat — inconsistent.
+
+export const duplicateCodeFiles = [
+  {
+    type: "folder",
+    name: "duplicate_code",
+    children: [
+      {
+        type: "file",
+        name: "Foo.java",
+        lang: "java",
+        code: `package duplicate_code;
+
+public class Foo {
+	// Setelah refactoring: methodHaha dan methodHihi
+	// tidak lagi duplikat — keduanya delegasi ke printFormatedText
+	protected void methodHaha() {
+		printFormatedText("Haha");
+	}
+
+	protected void methodHihi() {
+		printFormatedText("Hihi");
+	}
+
+	protected void methodHiHa() {
+		System.out.println("HiHiHiHa");
+	}
+
+	// Satu helper — logika format ada di sini saja
+	private void printFormatedText(String text) {
+		clearScreen();
+		printSeperator();
+		System.out.println(text);
+		printSeperator();
+	}
+
+	private void printSeperator() {
+		for (int i = 0; i < 3; i++) {
+			System.out.print("=");
+		}
+		System.out.println("");
+	}
+
+	private void clearScreen() {
+		for (int i = 0; i < 10; i++) {
+			System.out.println("");
+		}
+	}
+}`,
+      },
+      {
+        type: "file",
+        name: "Main.java",
+        lang: "java",
+        code: `package duplicate_code;
+
+public class Main {
+
+	public static void main(String[] args) {
+		Foo foo = new Foo();
+
+		foo.methodHaha();
+		foo.methodHihi();
+		foo.methodHiHa();
+	}
+}`,
+      },
+    ],
+  },
+];
+
+<FileExplorer files={duplicateCodeFiles} defaultFile="duplicate_code/Foo.java" height={380} />
+
+### Solusi
+
+Extract logika duplikat ke satu method helper. Method-method lain cukup memanggil helper tersebut.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — metodHaha dan methodHihi identik"
+  afterTitle="Sesudah — logika diextract ke printFormatedText"
+  before={`public class Foo {
+    protected void methodHaha() {
+        // Blok code IDENTIK dengan methodHihi — hanya teks beda!
+        clearScreen();
+        for (int i = 0; i < 3; i++) System.out.print("=");
+        System.out.println("");
+        System.out.println("Haha");
+        for (int i = 0; i < 3; i++) System.out.print("=");
+        System.out.println("");
+    }
+
+    protected void methodHihi() {
+        // Copy-paste dari methodHaha
+        clearScreen();
+        for (int i = 0; i < 3; i++) System.out.print("=");
+        System.out.println("");
+        System.out.println("Hihi");
+        for (int i = 0; i < 3; i++) System.out.print("=");
+        System.out.println("");
+    }
+}`}
+  after={`public class Foo {
+    protected void methodHaha() {
+        printFormatedText("Haha"); // bersih
+    }
+
+    protected void methodHihi() {
+        printFormatedText("Hihi"); // bersih
+    }
+
+    private void printFormatedText(String text) {
+        clearScreen();
+        printSeperator();
+        System.out.println(text);
+        printSeperator();
+    }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Harus baca logika sama berkali-kali | Nama `printFormatedText` langsung menjelaskan |
+| **Pengujian** | Harus tulis test terpisah untuk setiap salinan | Tulis satu test untuk helper, percayakan ke semua pemanggil |
+| **Pemeliharaan** | Format separator berubah = cari semua salinannya | Ubah di satu method, seluruh aplikasi terupdate |
+| **Reusabilitas** | Logika terkurung sebagai raw code di method spesifik | Helper bisa dipanggil dari bagian lain class |
+
+---
+
+## Lazy Class
+
+Class yang hanya melakukan sedikit hal dan hampir tidak berguna — biasanya sisa refactoring yang belum selesai.
+
+### Masalah
+
+`PriceValidator` hanya punya satu static method dengan satu baris logika. Keberadaannya menambah kompleksitas tanpa manfaat nyata.
+
+export const lazyClassFiles = [
+  {
+    type: "folder",
+    name: "lazy_class",
+    children: [
+      {
+        type: "file",
+        name: "Price.java",
+        lang: "java",
+        code: `package lazy_class;
+
+public class Price {
+	private int value;
+
+	public Price(int value) throws Exception {
+		if (!isPriceValid(value)) {
+			throw new Exception("price not valid");
+		}
+		this.value = value;
+	}
+
+	public boolean isPriceValid(int value) {
+		return value >= 0; // validasi cukup ada di sini
+	}
+
+	public int getValue() {
+		return value;
+	}
+}`,
+      },
+      {
+        type: "file",
+        name: "PriceValidator.java",
+        lang: "java",
+        code: `package lazy_class;
+
+// Gini doang? Buat apa?
+// Class ini terlalu kecil untuk berdiri sendiri!
+public class PriceValidator {
+	public static boolean validate(int value){
+		return value >= 0;
+	}
+}`,
+      },
+    ],
+  },
+];
+
+<FileExplorer files={lazyClassFiles} defaultFile="lazy_class/PriceValidator.java" height={300} />
+
+### Solusi
+
+Pindahkan logika ke class utama dan hapus class lazy tersebut.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — PriceValidator terlalu kecil untuk berdiri sendiri"
+  afterTitle="Sesudah — validasi langsung masuk ke Price"
+  before={`// Class lazy yang tidak perlu
+public class PriceValidator {
+    public static boolean validate(int value) {
+        return value >= 0; // satu baris saja
+    }
+}
+
+public class Price {
+    public Price(int value) throws Exception {
+        if (!PriceValidator.validate(value)) { // kenapa harus ke class lain?
+            throw new Exception("price not valid");
+        }
+    }
+}`}
+  after={`// PriceValidator sudah dihapus!
+public class Price {
+    private int value;
+
+    public Price(int value) throws Exception {
+        if (!isPriceValid(value)) { // validasi di sini
+            throw new Exception("price not valid");
+        }
+        this.value = value;
+    }
+
+    public boolean isPriceValid(int value) {
+        return value >= 0;
+    }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Harus loncat ke file lain hanya untuk satu baris validasi | Logika ada tepat di mana kamu mencarinya |
+| **Pengujian** | Harus setup objek ekstra yang tidak perlu | Test langsung pada class utama |
+| **Pemeliharaan** | Lebih banyak file untuk dilacak | Lebih sedikit file, lebih sedikit "bagian bergerak" |
+| **Reusabilitas** | Class terlalu kecil sehingga lebih mudah ditulis ulang | Logika menjadi bagian dari objek utama |
+
+---
+
+## Data Class
+
+Class yang hanya berisi fields, getter, dan setter — tanpa behavior apapun.
+
+### Masalah
+
+Data class murni memaksa class-class lain memegang logika yang seharusnya ada di dalam data tersebut. Ini melanggar encapsulation.
+
+export const dataClassFiles = [
+  {
+    type: "folder",
+    name: "data_class",
+    children: [
+      {
+        type: "file",
+        name: "User.java",
+        lang: "java",
+        code: `package data_class;
+
+public class User {
+	private String firstName;
+	private String lastName;
+
+	private String address;
+	private String phone;
+
+	// Ini yang membedakan dari Data Class murni:
+	// class punya BEHAVIOR, bukan hanya getter/setter
+	public void login() {
+		// logika login ada di sini
+	}
+
+	public void logout() {
+		// logika logout ada di sini
+	}
+
+	public String getFirstName() { return firstName; }
+	public void setFirstName(String firstName) { this.firstName = firstName; }
+	public String getLastName() { return lastName; }
+	public void setLastName(String lastName) { this.lastName = lastName; }
+	public String getAddress() { return address; }
+	public void setAddress(String address) { this.address = address; }
+	public String getPhone() { return phone; }
+	public void setPhone(String phone) { this.phone = phone; }
+}`,
+      },
+    ],
+  },
+];
+
+<FileExplorer files={dataClassFiles} defaultFile="data_class/User.java" height={320} />
+
+### Solusi
+
+Pindahkan logika yang berkaitan dengan data ke dalam class data itu sendiri.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — Data Class murni, hanya getter/setter"
+  afterTitle="Sesudah — class punya behavior yang relevan"
+  before={`// Data Class: tidak ada behavior sama sekali
+public class User {
+    private String firstName;
+    private String lastName;
+
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    // ... hanya getter dan setter ...
+}
+
+// Class lain terpaksa pegang logika User
+public class UserLoginService {
+    public void login(User user, String password) {
+        // Logika login ada di sini, padahal harusnya milik User!
+    }
+}`}
+  after={`public class User {
+    private String firstName;
+    private String lastName;
+
+    // Behavior milik User ada di sini
+    public void login() { /* logika login */ }
+    public void logout() { /* logika logout */ }
+
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Harus cari class lain untuk lihat bagaimana data digunakan | Kemampuan objek terlihat dari method-nya |
+| **Pengujian** | Harus test class klien untuk verifikasi logika data | Test langsung pada objeknya sendiri |
+| **Pemeliharaan** | Jika struktur data berubah, setiap class klien bisa rusak | Perubahan internal tersembunyi |
+| **Reusabilitas** | Bagian lain harus tulis ulang logika untuk pakai data | Tinggal panggil `user.login()` |
+
+---
+
+## Dead Code
+
+Variable, parameter, field, method, atau class yang sudah tidak pernah digunakan lagi.
+
+### Masalah
+
+Code yang tidak terpakai — biasanya sisa perubahan requirement — membingungkan developer baru yang menghabiskan waktu mencoba memahami code yang tidak melakukan apa-apa.
+
+export const deadCodeFiles = [
+  {
+    type: "folder",
+    name: "dead_code",
+    children: [
+      {
+        type: "file",
+        name: "PriceCalculator.java",
+        lang: "java",
+        code: `package dead_code;
+
+public class PriceCalculator {
+	public double calculate(double price, boolean isDiscount) {
+		double discountPrice = 0;
+
+		// DEAD CODE: logika lama yang sudah tidak dipakai
+		// jika harga kurang dari 10000, diskon 10%
+		// selain itu, diskon 20%
+//		if(isDiscount){
+//			if(price < 10000){
+//				discountPrice = price * 0.1;
+//			} else {
+//				discountPrice = price * 0.2;
+//			}
+//		}
+
+		// requirement berubah
+		// diskon diketok rata 15%
+		if (isDiscount)
+			discountPrice = price * 0.15;
+
+		return price - discountPrice;
+	}
+}`,
+      },
+    ],
+  },
+];
+
+<FileExplorer files={deadCodeFiles} defaultFile="dead_code/PriceCalculator.java" height={300} />
+
+### Solusi
+
+Hapus code yang tidak dipakai. Kalau perlu referensi di masa depan, gunakan version control (git) — bukan komentar.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — code lama ter-comment out (dead code)"
+  afterTitle="Sesudah — hanya logika aktif yang tersisa"
+  before={`public class PriceCalculator {
+    public double calculate(double price, boolean isDiscount) {
+        double discountPrice = 0;
+
+        // DEAD CODE yang membingungkan!
+//      if(isDiscount){
+//          if(price < 10000){
+//              discountPrice = price * 0.1;
+//          } else {
+//              discountPrice = price * 0.2;
+//          }
+//      }
+
+        // requirement berubah, diskon rata 15%
+        if (isDiscount) discountPrice = price * 0.15;
+        return price - discountPrice;
+    }
+}`}
+  after={`public class PriceCalculator {
+    public double calculate(double price, boolean isDiscount) {
+        double discountPrice = 0;
+
+        if (isDiscount)
+            discountPrice = price * 0.15;
+
+        return price - discountPrice;
+    }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Developer buang waktu memahami code yang tidak melakukan apa-apa | Setiap baris punya tujuan aktif yang jelas |
+| **Pengujian** | Bisa tidak sengaja test fitur "hantu" | Test coverage fokus pada code yang benar-benar dijalankan |
+| **Pemeliharaan** | Harus refactor dead code saat migrasi tanpa alasan | Lebih sedikit code = lebih sedikit yang perlu diurus |
+| **Reusabilitas** | Dead code tidak memberikan nilai apapun | Hanya logika berkualitas tinggi yang tersedia |
+
+---
+
+## Speculative Generality
+
+Class, method, atau abstraksi yang dibuat "kalau-kalau dibutuhkan di masa depan" — tapi fiturnya tidak pernah benar-benar diimplementasikan.
+
+### Masalah
+
+Hierarki abstrak `Currency → IDR, USD` dibuat untuk mengantisipasi multi-currency, padahal saat ini hanya dipakai untuk menampilkan kode string. Over-engineering untuk kebutuhan yang tidak nyata.
+
+export const speculativeFiles = [
+  {
+    type: "folder",
+    name: "speculative_generality",
+    children: [
+      {
+        type: "file",
+        name: "Currency.java",
+        lang: "java",
+        code: `package speculative_generality;
+
+// Abstract class yang tidak diperlukan saat ini
+// Dibuat hanya untuk mengantisipasi kemungkinan di masa depan
+public abstract class Currency {
+	public abstract String getCode();
+}`,
+      },
+      {
+        type: "file",
+        name: "IDR.java",
+        lang: "java",
+        code: `package speculative_generality;
+
+public class IDR extends Currency {
+	@Override
+	public String getCode() {
+		return "IDR";
+	}
+}`,
+      },
+      {
+        type: "file",
+        name: "USD.java",
+        lang: "java",
+        code: `package speculative_generality;
+
+public class USD extends Currency {
+	@Override
+	public String getCode() {
+		return "USD";
+	}
+}`,
+      },
+      {
+        type: "file",
+        name: "Price.java",
+        lang: "java",
+        code: `package speculative_generality;
+
+public class Price {
+	int value;
+	Currency currency; // <- kenapa harus objek? String sudah cukup!
+
+	public Price(int value, Currency currency) {
+		this.value = value;
+		this.currency = currency;
+	}
+
+	public int getValue() { return value; }
+	public void setValue(int value) { this.value = value; }
+	public Currency getCurrency() { return currency; }
+	public void setCurrency(Currency currency) { this.currency = currency; }
+}`,
+      },
+    ],
+  },
+];
+
+<FileExplorer files={speculativeFiles} defaultFile="speculative_generality/Currency.java" height={360} />
+
+### Solusi
+
+Hapus abstraksi yang tidak perlu. Ketika kebutuhan nyata datang, tambah abstraksi saat itu berdasarkan kebutuhan nyata — bukan spekulasi.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — hierarki abstrak untuk kebutuhan spekulatif"
+  afterTitle="Sesudah — String sudah cukup untuk saat ini"
+  before={`// 4 file hanya untuk menyimpan kode mata uang!
+abstract class Currency { abstract String getCode(); }
+class IDR extends Currency { String getCode() { return "IDR"; } }
+class USD extends Currency { String getCode() { return "USD"; } }
+
+class Price {
+    Currency currency; // harus buat IDR/USD object hanya untuk string
+    Price(int value, Currency currency) { ... }
+}`}
+  after={`// 1 file, sederhana
+class Price {
+    private int value;
+    private String currencyCode; // "IDR" atau "USD" — String sudah cukup!
+
+    Price(int value, String currencyCode) { ... }
+}
+// Currency.java, IDR.java, USD.java sudah dihapus!`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Harus navigasi berlapis-lapis hanya untuk menemukan code nyata | Code langsung menunjukkan apa yang dilakukan sekarang |
+| **Pengujian** | Harus mock interface generik kompleks untuk test sederhana | Test langsung pada class konkret |
+| **Pemeliharaan** | Terpaksa maintain code yang tidak melayani kebutuhan saat ini | Lebih sedikit code = lebih mudah diubah saat kebutuhan nyata tiba |
+| **Reusabilitas** | Abstraksi "generik" sering terlalu kabur untuk benar-benar digunakan | Code spesifik lebih mudah diekstrak jadi abstraksi nyata nanti |

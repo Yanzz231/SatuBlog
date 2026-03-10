@@ -1,0 +1,789 @@
+---
+sidebar_position: 2
+title: Object-Oriented Abusers
+---
+
+# Object-Oriented Abuser
+
+**Semua jenis Object-Oriented Abusers, penjelasan, contoh kode nyata, dan cara refactoringnya**
+
+Code smell ini terjadi karena penerapan prinsip-prinsip OOP yang salah, tidak lengkap, atau dipaksakan.
+
+> Sumber: [Refactoring Guru](https://refactoring.guru/refactoring/smells/oo-abusers)
+
+---
+
+## Switch Statements
+
+Kamu punya blok `switch` yang kompleks atau rangkaian `if-else` panjang untuk menangani berbagai tipe/varian.
+
+### Masalah
+
+Setiap kali ada tipe baru, kamu harus mengedit **semua** class yang punya `if-else` tersebut. Ini melanggar **Open/Closed Principle** — code harusnya terbuka untuk ekstensi, tertutup untuk modifikasi.
+
+Contoh nyata: `ShapePrinter` dan `CharNeededCounter` punya if-else identik untuk tipe shape. Tambah shape `Circle`? Harus edit **dua** class sekaligus.
+
+export const switchStatementsFiles = [
+  {
+    type: "folder",
+    name: "switch_statements",
+    children: [
+      {
+        type: "folder",
+        name: "before",
+        children: [
+          {
+            type: "file",
+            name: "ShapePrinter.java",
+            lang: "java",
+            code: `package oo_abusers.switch_statements.before;
+
+public class ShapePrinter {
+	public void print(String shape, int size){
+		if(shape.equalsIgnoreCase("square")){
+			for(int i = 0; i < size; i++){
+				for(int j = 0; j < size; j++){
+					System.out.print("*");
+				}
+				System.out.println("");
+			}
+		} else if(shape.equalsIgnoreCase("triangle")){
+			for(int i = 1; i <= size; i++){
+				for(int j = 0; j < i; j++){
+					System.out.print("*");
+				}
+				System.out.println("");
+			}
+		} else {
+			System.out.println("invalid shape");
+		}
+	}
+}`,
+          },
+          {
+            type: "file",
+            name: "CharNeededCounter.java",
+            lang: "java",
+            code: `package oo_abusers.switch_statements.before;
+
+public class CharNeededCounter {
+	public int count(String shape, int size){
+		if(shape.equalsIgnoreCase("square")){
+			return size * size;
+		} else if(shape.equalsIgnoreCase("triangle")){
+			return ((size+1) * size) / 2;
+		}
+		return -1;
+	}
+}`,
+          },
+          {
+            type: "file",
+            name: "Main.java",
+            lang: "java",
+            code: `package oo_abusers.switch_statements.before;
+
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        ShapePrinter printer = new ShapePrinter();
+        CharNeededCounter counter = new CharNeededCounter();
+
+        String inputShape;
+        int inputSize;
+
+        System.out.println("Input Shape: ");
+        Scanner sc = new Scanner(System.in);
+        inputShape = sc.nextLine();
+
+        System.out.println("Input Size: ");
+        inputSize = sc.nextInt();
+        sc.nextLine();
+
+        printer.print(inputShape, inputSize);
+        System.out.println("Total bintang: " + counter.count(inputShape, inputSize));
+
+        sc.close();
+    }
+}`,
+          },
+        ],
+      },
+      {
+        type: "folder",
+        name: "after",
+        children: [
+          {
+            type: "file",
+            name: "Shape.java",
+            lang: "java",
+            code: `package oo_abusers.switch_statements.after;
+
+public abstract class Shape {
+	protected int size;
+
+	public Shape(int size) {
+		this.size = size;
+	}
+
+	public abstract void print();
+	public abstract int charNeeded();
+}`,
+          },
+          {
+            type: "file",
+            name: "Square.java",
+            lang: "java",
+            code: `package oo_abusers.switch_statements.after;
+
+public class Square extends Shape {
+
+	public Square(int size) {
+		super(size);
+	}
+
+	@Override
+	public void print() {
+		for(int i = 0; i < size; i++){
+			for(int j = 0; j < size; j++){
+				System.out.print("*");
+			}
+			System.out.println("");
+		}
+	}
+
+	@Override
+	public int charNeeded() {
+		return size * size;
+	}
+}`,
+          },
+          {
+            type: "file",
+            name: "Triangle.java",
+            lang: "java",
+            code: `package oo_abusers.switch_statements.after;
+
+public class Triangle extends Shape {
+
+	public Triangle(int size) {
+		super(size);
+	}
+
+	@Override
+	public void print() {
+		for(int i = 1; i <= size; i++){
+			for(int j = 0; j < i; j++){
+				System.out.print("*");
+			}
+			System.out.println("");
+		}
+	}
+
+	@Override
+	public int charNeeded() {
+		return ((size + 1) * size) / 2;
+	}
+}`,
+          },
+          {
+            type: "file",
+            name: "ShapeFactory.java",
+            lang: "java",
+            code: `package oo_abusers.switch_statements.after;
+
+public class ShapeFactory {
+
+	public Shape create(String shape, int size) throws Exception {
+		if (shape.equalsIgnoreCase("square")) {
+			return new Square(size);
+		} else if (shape.equalsIgnoreCase("triangle")) {
+			return new Triangle(size);
+		} else {
+			throw new Exception("Invalid shape");
+		}
+	}
+}`,
+          },
+          {
+            type: "file",
+            name: "Main.java",
+            lang: "java",
+            code: `package oo_abusers.switch_statements.after;
+
+import java.util.Scanner;
+
+public class Main {
+	static Scanner sc = new Scanner(System.in);
+
+	public Main() {
+		String inputShape;
+		int inputSize;
+		ShapeFactory sf = new ShapeFactory();
+
+		System.out.println("Input Shape: ");
+		inputShape = sc.nextLine();
+
+		System.out.println("Input Size: ");
+		inputSize = sc.nextInt();
+		sc.nextLine();
+
+		Shape shape1;
+		try {
+			shape1 = sf.create(inputShape, inputSize);
+			shape1.print();
+			System.out.println("Total bintang " + shape1.charNeeded());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		sc.close();
+	}
+
+	public static void main(String[] args) {
+		new Main();
+	}
+}`,
+          },
+        ],
+      },
+    ],
+  },
+];
+
+<FileExplorer files={switchStatementsFiles} defaultFile="switch_statements/before/ShapePrinter.java" height={440} />
+
+### Solusi
+
+Ubah setiap tipe shape menjadi class yang mewarisi abstract class `Shape`. Logika `print()` dan `charNeeded()` dipindahkan ke masing-masing class.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — if-else tersebar di ShapePrinter dan CharNeededCounter"
+  afterTitle="Sesudah — setiap shape punya class sendiri"
+  before={`// if-else yang sama ada di ShapePrinter DAN CharNeededCounter!
+public class ShapePrinter {
+    public void print(String shape, int size) {
+        if (shape.equalsIgnoreCase("square")) {
+            // logika cetak kotak...
+        } else if (shape.equalsIgnoreCase("triangle")) {
+            // logika cetak segitiga...
+        }
+    }
+}
+
+public class CharNeededCounter {
+    public int count(String shape, int size) {
+        if (shape.equalsIgnoreCase("square")) return size * size;
+        else if (shape.equalsIgnoreCase("triangle")) return ((size+1)*size)/2;
+        return -1;
+    }
+}`}
+  after={`// Tiap shape urus diri sendiri
+public abstract class Shape {
+    protected int size;
+    public abstract void print();
+    public abstract int charNeeded();
+}
+
+public class Square extends Shape {
+    @Override public void print() { /* logika kotak */ }
+    @Override public int charNeeded() { return size * size; }
+}
+
+// Tambah Circle? Cukup buat class baru — tidak ada class lain yang diubah!
+public class Circle extends Shape {
+    @Override public void print() { /* logika lingkaran */ }
+    @Override public int charNeeded() { /* rumus lingkaran */ }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Blok if-else besar menyembunyikan tujuan | Setiap class punya satu tanggung jawab |
+| **Pengujian** | Harus test semua branch dalam satu method | Setiap shape ditest secara mandiri |
+| **Pemeliharaan** | Tambah shape baru = edit banyak file | Buat class baru, tidak ada yang diubah |
+| **Reusabilitas** | Logika terkurung dalam method | Objek shape bisa dioper ke mana saja |
+
+---
+
+## Temporary Field
+
+Field di dalam class hanya diisi nilainya pada kondisi tertentu — "numpang lewat" saja.
+
+### Masalah
+
+Field `distance`, `fuelCost`, `weightFee` di `CodeSmell_ShippingOrder` hanya dipakai saat kalkulasi. Di method lain, field ini tidak dipakai sama sekali — tapi tetap ada dan membingungkan pembaca.
+
+export const tempFieldFiles = [
+  {
+    type: "folder",
+    name: "temporary_field",
+    children: [
+      {
+        type: "folder",
+        name: "before",
+        children: [
+          {
+            type: "file",
+            name: "CodeSmell_ShippingOrder.java",
+            lang: "java",
+            code: `package oo_abusers.temporary_field.before;
+
+public class CodeSmell_ShippingOrder {
+    private String destination;
+    private double basePrice;
+
+    // --- TEMPORARY FIELDS ---
+    // Variabel ini cuma dipakai buat hitung-hitungan sementara
+    private double distance;
+    private double fuelCost;
+    private double weightFee;
+
+    public CodeSmell_ShippingOrder(String destination, double basePrice) {
+        this.destination = destination;
+        this.basePrice = basePrice;
+    }
+
+    public double calculateTotal(double weight, double km) {
+        // Mengisi temporary fields
+        distance = km;
+        fuelCost = distance * 2000;
+        weightFee = weight * 5000;
+
+        return basePrice + fuelCost + weightFee;
+    }
+
+    // Bayangkan ada 10 method lain yang tidak peduli soal fuelCost atau weightFee
+    public String getReceipt() {
+        return "Order to: " + destination;
+    }
+}`,
+          },
+        ],
+      },
+      {
+        type: "folder",
+        name: "after",
+        children: [
+          {
+            type: "file",
+            name: "CodeSmell_ShippingOrder.java",
+            lang: "java",
+            code: `package oo_abusers.temporary_field.after;
+
+public class CodeSmell_ShippingOrder {
+	private String destination;
+	private double basePrice;
+
+	public CodeSmell_ShippingOrder(String destination, double basePrice) {
+		this.destination = destination;
+		this.basePrice = basePrice;
+	}
+
+	public double calculateTotal(double weight, double km) {
+		CalculateShippingOrder calc = new CalculateShippingOrder(weight, km);
+		return basePrice + calc.getTotalExtraCost();
+	}
+
+	public String getReceipt() {
+		return "Order to: " + destination;
+	}
+}`,
+          },
+          {
+            type: "file",
+            name: "CalculateShippingOrder.java",
+            lang: "java",
+            code: `package oo_abusers.temporary_field.after;
+
+public class CalculateShippingOrder {
+	public double distance;
+	public double fuelCost;
+	public double weightFee;
+
+	public CalculateShippingOrder(double weight, double km) {
+		super();
+		this.distance = km;
+		this.fuelCost = this.distance * 2000;
+		this.weightFee = weight * 5000;
+	}
+
+	public double getTotalExtraCost() {
+		return fuelCost + weightFee;
+	}
+}`,
+          },
+        ],
+      },
+    ],
+  },
+];
+
+<FileExplorer files={tempFieldFiles} defaultFile="temporary_field/before/CodeSmell_ShippingOrder.java" height={400} />
+
+### Solusi
+
+Pindahkan temporary fields ke class baru yang memang bertanggung jawab untuk kalkulasi tersebut.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — temporary fields menghantui class utama"
+  afterTitle="Sesudah — field dipindah ke class kalkulasi"
+  before={`public class CodeSmell_ShippingOrder {
+    private String destination;
+    private double basePrice;
+
+    // Field ini hanya hidup selama calculateTotal()!
+    private double distance;   // temporary
+    private double fuelCost;   // temporary
+    private double weightFee;  // temporary
+
+    public double calculateTotal(double weight, double km) {
+        distance = km;
+        fuelCost = distance * 2000;
+        weightFee = weight * 5000;
+        return basePrice + fuelCost + weightFee;
+    }
+}`}
+  after={`public class CodeSmell_ShippingOrder {
+    private String destination;
+    private double basePrice;
+    // Tidak ada temporary fields di sini!
+
+    public double calculateTotal(double weight, double km) {
+        CalculateShippingOrder calc = new CalculateShippingOrder(weight, km);
+        return basePrice + calc.getTotalExtraCost();
+    }
+}
+
+public class CalculateShippingOrder {
+    public double distance;
+    public double fuelCost;
+    public double weightFee;
+
+    public CalculateShippingOrder(double weight, double km) {
+        this.distance = km;
+        this.fuelCost = distance * 2000;
+        this.weightFee = weight * 5000;
+    }
+
+    public double getTotalExtraCost() { return fuelCost + weightFee; }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Field membingungkan karena hanya aktif kondisi tertentu | Class hanya berisi data yang relevan permanen |
+| **Pengujian** | Harus track side-effect antar field | Objek kalkulasi bisa ditest terisolasi |
+| **Pemeliharaan** | Tidak jelas kapan field aman untuk dimodifikasi | State sementara hilang setelah digunakan |
+| **Reusabilitas** | Class utama terikat pada logika kalkulasi spesifik | Class kalkulasi bisa dipakai ulang di konteks lain |
+
+---
+
+## Refused Bequest
+
+Subclass hanya memakai sebagian kecil warisan dari parent — sisanya diabaikan atau di-override dengan `null`.
+
+### Masalah
+
+Ini melanggar **Liskov Substitution Principle**: subclass harus bisa menggantikan parent tanpa merusak program. `Stack extends Vector` artinya user bisa panggil `remove(int)`, `set()`, `insertElementAt()` — operasi yang tidak masuk akal untuk Stack!
+
+export const refusedBequestFiles = [
+  {
+    type: "folder",
+    name: "refused_bequest",
+    children: [
+      {
+        type: "folder",
+        name: "before",
+        children: [
+          {
+            type: "file",
+            name: "Stack.java",
+            lang: "java",
+            code: `package oo_abusers.refused_bequest.before;
+
+import java.util.Vector;
+
+public class Stack<E> extends Vector<E> {
+
+	public void push(E data) {
+		this.add(data);
+	}
+
+	public void pop() {
+		this.removeElementAt(this.size()-1);
+	}
+
+	public E peek() {
+		return this.elementAt(this.size()-1);
+	}
+
+	// Problem: tidak boleh remove by index, harus pakai pop()
+	// Tapi tetap bisa dipanggil dari luar karena extends Vector!
+	@Override
+	public synchronized E remove(int index) {
+		return null; // menolak warisan dengan diam-diam
+	}
+}`,
+          },
+          {
+            type: "file",
+            name: "Main.java",
+            lang: "java",
+            code: `package oo_abusers.refused_bequest.before;
+
+public class Main {
+	public static void main(String[] args) {
+		Stack<String> stk = new Stack<String>();
+		// Masalah: user bisa panggil stk.remove(0), stk.set(0, "x"), dll.
+		// Padahal Stack tidak mendukung operasi itu!
+	}
+}`,
+          },
+        ],
+      },
+      {
+        type: "folder",
+        name: "after",
+        children: [
+          {
+            type: "file",
+            name: "Stack.java",
+            lang: "java",
+            code: `package oo_abusers.refused_bequest.after;
+
+import java.util.Vector;
+
+public class Stack<E> {
+	private Vector<E> vector = new Vector<>();
+
+	public void push(E data) {
+		vector.add(data);
+	}
+
+	public void pop() {
+		vector.removeElementAt(vector.size() - 1);
+	}
+
+	public E peek() {
+		return vector.elementAt(vector.size() - 1);
+	}
+	// Tidak ada method Vector lain yang bocor ke luar!
+}`,
+          },
+          {
+            type: "file",
+            name: "Main.java",
+            lang: "java",
+            code: `package oo_abusers.refused_bequest.after;
+
+public class Main {
+	public static void main(String[] args) {
+		Stack<String> st = new Stack<String>();
+
+		st.push("4");
+		System.out.println(st.peek()); // "4"
+		// st.remove(0) <- compile error! Lebih aman.
+	}
+}`,
+          },
+        ],
+      },
+    ],
+  },
+];
+
+<FileExplorer files={refusedBequestFiles} defaultFile="refused_bequest/before/Stack.java" height={400} />
+
+### Solusi
+
+Ganti inheritance dengan **komposisi**. Stack *punya* Vector, bukan *adalah* Vector.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — Stack extends Vector (warisan yang salah)"
+  afterTitle="Sesudah — Stack punya Vector (komposisi)"
+  before={`// Stack ADALAH Vector — user bisa akses semua method Vector
+public class Stack<E> extends Vector<E> {
+    public void push(E data) { this.add(data); }
+    public void pop() { this.removeElementAt(this.size()-1); }
+    public E peek() { return this.elementAt(this.size()-1); }
+
+    @Override
+    public synchronized E remove(int index) {
+        return null; // menolak warisan dengan diam-diam
+    }
+    // Tapi stk.set(), stk.insertElementAt(), stk.remove(0) masih bisa dipanggil!
+}`}
+  after={`// Stack PUNYA Vector — hanya method Stack yang terekspos
+public class Stack<E> {
+    private Vector<E> vector = new Vector<>();
+
+    public void push(E data) { vector.add(data); }
+    public void pop() { vector.removeElementAt(vector.size()-1); }
+    public E peek() { return vector.elementAt(vector.size()-1); }
+    // Hanya 3 method ini yang ada. Tidak ada kejutan.
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Tidak jelas method mana yang "aman" dipakai | Interface class mencerminkan kemampuan nyata |
+| **Pengujian** | Perilaku tak terduga bisa muncul dari method parent | Setiap method bermakna, tidak ada yang tersembunyi |
+| **Pemeliharaan** | Override yang return null menyembunyikan bug | Tidak ada warisan yang ditolak |
+| **Reusabilitas** | Subclass tidak aman dipakai sebagai parent | Komposisi membuat class lebih fleksibel |
+
+---
+
+## Alternative Classes with Different Interfaces
+
+Dua class melakukan hal yang sama, tapi nama method-nya berbeda-beda.
+
+### Masalah
+
+`PacMan` punya method `draw()`, sedangkan `Ghost` punya method `paint()` — padahal keduanya menggambar sprite ke layar. Code yang menggunakan keduanya terpaksa punya dua cabang logika hanya karena perbedaan nama.
+
+export const altClassesFiles = [
+  {
+    type: "folder",
+    name: "alt_classes_with_dif_interfaces",
+    children: [
+      {
+        type: "folder",
+        name: "before",
+        children: [
+          {
+            type: "file",
+            name: "PacMan.java",
+            lang: "java",
+            code: `package oo_abusers.alt_classes_with_dif_interfaces.before;
+
+import java.awt.Graphics2D;
+
+public class PacMan {
+	public void draw(Graphics2D g){
+		//draw PacMan pixel from spritesheet
+	}
+}`,
+          },
+          {
+            type: "file",
+            name: "Ghost.java",
+            lang: "java",
+            code: `package oo_abusers.alt_classes_with_dif_interfaces.before;
+
+import java.awt.Graphics2D;
+
+public class Ghost {
+	public void paint(Graphics2D g){ // <- nama berbeda!
+		//draw Ghost pixel from spritesheet
+	}
+}`,
+          },
+        ],
+      },
+      {
+        type: "folder",
+        name: "after",
+        children: [
+          {
+            type: "file",
+            name: "Drawable.java",
+            lang: "java",
+            code: `package oo_abusers.alt_classes_with_dif_interfaces.after;
+
+import java.awt.Graphics2D;
+
+public interface Drawable {
+	void draw(Graphics2D g);
+}`,
+          },
+          {
+            type: "file",
+            name: "PacMan.java",
+            lang: "java",
+            code: `package oo_abusers.alt_classes_with_dif_interfaces.after;
+
+import java.awt.Graphics2D;
+
+public class PacMan implements Drawable {
+	@Override
+	public void draw(Graphics2D g){
+		//draw PacMan pixel from spritesheet
+	}
+}`,
+          },
+          {
+            type: "file",
+            name: "Ghost.java",
+            lang: "java",
+            code: `package oo_abusers.alt_classes_with_dif_interfaces.after;
+
+import java.awt.Graphics2D;
+
+public class Ghost implements Drawable {
+	@Override
+	public void draw(Graphics2D g){ // <- nama sudah seragam!
+		//draw Ghost pixel from spritesheet
+	}
+}`,
+          },
+        ],
+      },
+    ],
+  },
+];
+
+<FileExplorer files={altClassesFiles} defaultFile="alt_classes_with_dif_interfaces/before/Ghost.java" height={360} />
+
+### Solusi
+
+Buat interface `Drawable` dengan method `draw()`. Semua class yang bisa digambar implementasi interface ini.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — nama method berbeda untuk hal yang sama"
+  afterTitle="Sesudah — interface menyatukan kontrak"
+  before={`public class PacMan {
+    public void draw(Graphics2D g) { /* gambar PacMan */ }
+}
+
+public class Ghost {
+    public void paint(Graphics2D g) { /* gambar Ghost */ } // nama beda!
+}
+
+// Code pemanggil terpaksa handle dua cara berbeda:
+// if (entity instanceof PacMan) pacman.draw(g)
+// if (entity instanceof Ghost) ghost.paint(g)`}
+  after={`public interface Drawable {
+    void draw(Graphics2D g); // kontrak tunggal
+}
+
+public class PacMan implements Drawable {
+    @Override public void draw(Graphics2D g) { /* gambar PacMan */ }
+}
+
+public class Ghost implements Drawable {
+    @Override public void draw(Graphics2D g) { /* gambar Ghost */ }
+}
+
+// Code pemanggil cukup:
+// for (Drawable entity : entities) entity.draw(g);`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Developer harus hafal nama method tiap class | Satu interface membuat niat langsung jelas |
+| **Pengujian** | Harus tulis test terpisah karena tidak punya tipe sama | Satu test suite untuk semua `Drawable` |
+| **Pemeliharaan** | Tambah entitas baru = code pemanggil harus tahu nama method-nya | Cukup implementasi interface |
+| **Reusabilitas** | Logika render terikat pada class spesifik | Semua drawable bisa diperlakukan seragam |

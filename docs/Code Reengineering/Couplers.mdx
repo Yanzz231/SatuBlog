@@ -1,0 +1,272 @@
+---
+sidebar_position: 5
+title: Couplers
+---
+
+# Couplers
+
+**Semua jenis Couplers, penjelasan, contoh, dan cara refactoringnya**
+
+Semua code smell dalam kelompok ini berkontribusi pada **coupling berlebihan** antar class, atau menunjukkan apa yang terjadi ketika coupling digantikan oleh delegasi yang berlebihan.
+
+> Sumber: [Refactoring Guru](https://refactoring.guru/refactoring/smells/couplers)
+
+---
+
+## Feature Envy
+
+Sebuah method mengakses data dari objek lain lebih banyak daripada datanya sendiri.
+
+### Masalah
+
+Ini melanggar **Encapsulation**. Jika logika tentang `Item` ada di `Basket`, setiap kali logika `Item` berubah, kita harus mencari di class yang tidak terduga.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — Basket terlalu banyak tahu tentang Item"
+  afterTitle="Sesudah — logika milik Item kembali ke Item"
+  before={`public class Basket {
+    public double getTotalItemPrice(Item item) {
+        // Feature Envy: mengakses data Item berkali-kali
+        double base = item.getPrice() * item.getQuantity();
+        double tax = base * item.getTaxRate();
+        return base + tax;
+        // Logika ini seharusnya milik Item, bukan Basket!
+    }
+}`}
+  after={`public class Item {
+    private double price;
+    private int quantity;
+    private double taxRate;
+
+    // Logika ada di sini — di mana datanya berada
+    public double getTotalPrice() {
+        double base = price * quantity;
+        return base + (base * taxRate);
+    }
+}
+
+// Basket sekarang bersih
+public class Basket {
+    public double getTotalItemPrice(Item item) {
+        return item.getTotalPrice(); // hanya delegasi
+    }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Logika tersebar; harus lihat dua class untuk satu kalkulasi | Logika ada tepat di mana datanya berada |
+| **Pengujian** | Harus setup `Basket` hanya untuk test logika `Item` | Bisa unit test logika `Item` terisolasi |
+| **Pemeliharaan** | Jika kalkulasi `Item` berubah, harus cari semua pemanggil yang "iri" | Ubah logika sekali di dalam `Item` |
+| **Reusabilitas** | Class lain harus copy-paste kalkulasi | Bagian mana saja bisa panggil `item.getTotalPrice()` |
+
+---
+
+## Inappropriate Intimacy
+
+Satu class menggunakan field dan method internal dari class lain.
+
+### Masalah
+
+Karena terlalu banyak tahu tentang implementasi internal satu sama lain, perubahan kecil di satu class hampir selalu merusak class yang lain.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — License mengakses langsung internal User"
+  afterTitle="Sesudah — User mengelola state-nya sendiri"
+  before={`public class User {
+    // Seharusnya private, tapi dibuat public agar License bisa mengaksesnya
+    public String status;
+    public List<String> permissions;
+}
+
+public class License {
+    public boolean canAccess(User user) {
+        // Intimacy: mengakses langsung internal User
+        if (user.status.equals("ACTIVE") && user.permissions.contains("ADMIN")) {
+            return true;
+        }
+        return false;
+    }
+}`}
+  after={`public class User {
+    private String status;
+    private List<String> permissions;
+
+    // Batas yang jelas: class ini mengelola state-nya sendiri
+    public boolean hasAdminAccess() {
+        return "ACTIVE".equals(status) && permissions.contains("ADMIN");
+    }
+}
+
+public class License {
+    public boolean canAccess(User user) {
+        return user.hasAdminAccess(); // hormat — hanya tanya boolean
+    }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Harus memahami struktur internal dua class sekaligus | Setiap class punya interface yang bersih |
+| **Pengujian** | Harus setup state internal `User` untuk test `License` | Cukup mock method `hasAdminAccess()` |
+| **Pemeliharaan** | Rename list permissions → `License` langsung rusak | Bisa ubah internal `User` tanpa sentuh `License` |
+| **Reusabilitas** | Class-class "saling lengket" | `User` bisa dipakai di mana saja |
+
+---
+
+## Message Chains
+
+Dalam code terlihat rangkaian pemanggilan seperti `a.getB().getC().getD().doSomething()`.
+
+### Masalah
+
+- Setiap perubahan pada relasi antar objek memaksa modifikasi pada code pemanggil.
+- Setiap kali ingin memanggil method, harus menghafal seluruh chain.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — chain panjang yang rapuh"
+  afterTitle="Sesudah — chain disembunyikan di dalam objek"
+  before={`public void printShippingZone(User user) {
+    // Message Chain: terlalu banyak navigasi!
+    String zip = user.getProfile().getAddress().getZipCode();
+    System.out.println("Shipping to: " + zip);
+
+    // Kalau ZipCode pindah dari Address ke Profile — baris ini rusak!
+}`}
+  after={`public class User {
+    private Profile profile;
+
+    // Encapsulation: menyembunyikan chain di dalam
+    public String getZipCode() {
+        return profile.getAddress().getZipCode();
+    }
+}
+
+// Code pemanggil sekarang sederhana
+public void printShippingZone(User user) {
+    System.out.println("Shipping to: " + user.getZipCode());
+    // Kalau internal berubah — hanya update class User, pemanggil tidak terpengaruh
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Chain panjang berisik dan sulit dibaca | Satu method call menyatakan niat dengan jelas |
+| **Pengujian** | Harus mock `User`, `Profile`, dan `Address` untuk satu test | Cukup mock atau stub `getZipCode()` |
+| **Pemeliharaan** | Memindahkan `ZipCode` merusak semua pemanggil | Hanya update `User`; pemanggil tidak menyadari perubahan |
+| **Reusabilitas** | Code pemanggil terikat pada struktur objek yang dalam | Pemanggil hanya bergantung pada interface `User` |
+
+---
+
+## Middle Man
+
+Sebuah class hanya melakukan satu aksi: mendelegasikan pekerjaan ke class lain.
+
+### Masalah
+
+Class tersebut hanya menjadi cangkang kosong yang tidak melakukan apa-apa selain mendelegasikan. Biasanya terjadi karena terlalu bersemangat mengeliminasi Message Chains.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — Department hanya meneruskan panggilan"
+  afterTitle="Sesudah — akses langsung ke Manager"
+  before={`public class Department {
+    private Manager manager;
+
+    // Middle Man: method ini tidak melakukan apa-apa selain delegasi
+    public String getManagerName() {
+        return manager.getName(); // langsung diteruskan
+    }
+
+    public String getManagerOffice() {
+        return manager.getOfficeNumber(); // langsung diteruskan juga
+    }
+}
+
+// Klien:
+String name = department.getManagerName();`}
+  after={`public class Department {
+    private Manager manager;
+
+    // Cukup ekspos Manager-nya langsung
+    public Manager getManager() {
+        return manager;
+    }
+}
+
+// Klien bicara langsung ke Manager
+String name = department.getManager().getName();`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Harus trace melalui method "pass-through" | Jelas sekali objek mana yang menyediakan data |
+| **Pengujian** | Harus mock `Department` hanya untuk sampai ke logika `Manager` | Bisa test `Manager` langsung |
+| **Pemeliharaan** | Tambah field ke `Manager` = harus update delegasi di `Department` | Perubahan `Manager` tidak perlu update class perantara |
+| **Reusabilitas** | Logika delegasi adalah boilerplate yang tidak ada nilainya | `Manager` digunakan langsung di mana dibutuhkan |
+
+---
+
+## Incomplete Library Class
+
+Library berhenti memenuhi kebutuhan, tapi tidak bisa dimodifikasi karena bersifat read-only.
+
+### Masalah
+
+Jika kita ingin method yang library tidak sediakan, kita buat logika sendiri. Tapi logika itu tersebar — setiap kali butuh, harus tulis ulang atau copy-paste.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — logika bisnis tersebar di setiap service"
+  afterTitle="Sesudah — logika tambahan terpusat di helper class"
+  before={`public class BookingService {
+    public void schedule(LocalDate startDate) {
+        // Logika manual karena library "tidak lengkap"
+        LocalDate nextDay = startDate.plusDays(1);
+        if (nextDay.getDayOfWeek().getValue() > 5) {
+            nextDay = nextDay.plusDays(2); // lewati weekend
+        }
+        System.out.println("Scheduled for: " + nextDay);
+    }
+}
+
+// Kalau ada ShippingService juga butuh next business day — harus copy-paste logika ini!`}
+  after={`// Kita "melengkapi" library di sini
+public class DateHelper {
+    public static LocalDate nextBusinessDay(LocalDate date) {
+        LocalDate nextDay = date.plusDays(1);
+        if (nextDay.getDayOfWeek().getValue() > 5) {
+            return nextDay.plusDays(2);
+        }
+        return nextDay;
+    }
+}
+
+// Service sekarang bersih
+public class BookingService {
+    public void schedule(LocalDate startDate) {
+        LocalDate nextDay = DateHelper.nextBusinessDay(startDate);
+        System.out.println("Scheduled for: " + nextDay);
+    }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Logika bisnis terkubur di bawah "matematika" library | Nama `nextBusinessDay` menjelaskan niat dengan jelas |
+| **Pengujian** | Harus test logika "hilang" di setiap class yang menggunakannya | Test extension sekali di file test-nya sendiri |
+| **Pemeliharaan** | Logika berubah = harus cari semua tempat yang copy-paste | Update di satu helper, semua service ikut |
+| **Reusabilitas** | Logika terkurung di service spesifik | Bagian mana saja bisa pakai `DateHelper` |

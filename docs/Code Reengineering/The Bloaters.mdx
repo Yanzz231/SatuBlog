@@ -1,0 +1,302 @@
+---
+sidebar_position: 1
+title: The Bloaters
+---
+
+# The Bloaters
+
+**Semua jenis The Bloaters, penjelasan, contoh, dan cara refactoringnya**
+
+Bloater adalah code, method, dan class yang telah membengkak sedemikian besar sehingga sulit untuk dikerjakan. Biasanya tidak muncul sekaligus — menumpuk seiring berjalannya waktu saat program berkembang.
+
+> Sumber: [Refactoring Guru](https://refactoring.guru/refactoring/smells/bloaters)
+
+---
+
+## Large Class
+
+Sebuah class berisi terlalu banyak field, method, dan baris code — biasanya karena satu class menanggung lebih dari satu tanggung jawab.
+
+### Masalah
+
+Large class sangat membuat frustrasi saat harus menangani satu error kecil tapi tidak tahu harus mencari di mana — seperti mencari jarum di tumpukan jerami.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — satu class melakukan segalanya"
+  afterTitle="Sesudah — tanggung jawab dipisah ke class masing-masing"
+  before={`public class UserAccount {
+    private String username;
+    private String email;
+    private String password;
+
+    // 1. Logika: Validasi Data
+    public boolean isValidEmail() {
+        return email.contains("@") && email.endsWith(".com");
+    }
+
+    // 2. Logika: Database
+    public void saveToDatabase() {
+        System.out.println("Connecting to DB...");
+        System.out.println("Saving " + username + " to USER table.");
+    }
+
+    // 3. Logika: Notifikasi
+    public void sendWelcomeEmail() {
+        System.out.println("Sending email to " + email);
+    }
+
+    // 4. Logika: Enkripsi
+    public String encryptPassword() {
+        return "encrypted_" + password;
+    }
+}`}
+  after={`public class User {
+    private String username;
+    private String email;
+    private String password;
+    // Hanya getter dan setter
+}
+
+public class UserRepository {
+    public void save(User user) {
+        System.out.println("Saving " + user.getUsername() + " to the database.");
+    }
+}
+
+public class EmailService {
+    public void sendWelcomeEmail(User user) {
+        System.out.println("Sending welcome email to: " + user.getEmail());
+    }
+}
+
+public class RegistrationManager {
+    private UserRepository repo = new UserRepository();
+    private EmailService emailService = new EmailService();
+
+    public void registerNewUser(String name, String email, String pass) {
+        User newUser = new User(name, email, pass);
+        repo.save(newUser);
+        emailService.sendWelcomeEmail(newUser);
+    }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Sulit menemukan logika spesifik | Sangat jelas; logika diberi nama lewat class |
+| **Pengujian** | Harus test DB dan Email bersamaan | Bisa test logika Email tanpa DB |
+| **Pemeliharaan** | Mengubah satu hal bisa merusak yang lain | Perubahan terisolasi pada satu class kecil |
+| **Reusabilitas** | Logika `User` terkurung | `EmailService` bisa dipakai class lain |
+
+---
+
+## Long Method
+
+Sebuah method mengandung terlalu banyak baris code — biasanya karena satu method menanggung lebih dari satu tanggung jawab.
+
+### Masalah
+
+Long method sangat membuat frustrasi saat harus menghadapi satu error kecil, tapi kamu bahkan tidak tahu dari mana harus mulai mencarinya.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — satu method melakukan segalanya"
+  afterTitle="Sesudah — tanggung jawab dipisah ke method kecil"
+  before={`public void registerUser(String username, String password, String email) {
+    // 1. Validasi
+    if (username == null || username.length() < 3) {
+        throw new IllegalArgumentException("Username too short");
+    }
+    if (!email.contains("@")) {
+        throw new IllegalArgumentException("Invalid email");
+    }
+
+    // 2. Enkripsi
+    String hashedPassword = "SHA256:" + password.hashCode();
+
+    // 3. Database
+    try {
+        Connection conn = DriverManager.getConnection("jdbc:mysql://...", "user", "pass");
+        PreparedStatement stmt = conn.prepareStatement("INSERT INTO users VALUES (?, ?, ?)");
+        stmt.executeUpdate();
+    } catch (SQLException e) { e.printStackTrace(); }
+
+    // 4. Notifikasi
+    System.out.println("Sending welcome email to " + email);
+}`}
+  after={`public void registerUser(String username, String password, String email) {
+    validateInput(username, email);
+    String securePassword = hashPassword(password);
+    saveUserToDatabase(username, securePassword, email);
+    sendWelcomeEmail(email);
+}
+
+private void validateInput(String username, String email) {
+    if (username == null || username.length() < 3) throw new IllegalArgumentException("Invalid username");
+    if (!email.contains("@")) throw new IllegalArgumentException("Invalid email");
+}
+
+private String hashPassword(String password) {
+    return "SECURE_HASH_" + password.hashCode();
+}
+
+private void saveUserToDatabase(String username, String password, String email) {
+    System.out.println("Persisting user: " + username);
+}
+
+private void sendWelcomeEmail(String email) {
+    System.out.println("Email sent to: " + email);
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Harus baca baris per baris untuk mengerti "Kenapa" | Nama method langsung memberitahu "Apa" yang terjadi |
+| **Pengujian** | Harus test keseluruhan method untuk verifikasi satu bagian | Setiap method kecil bisa ditest secara presisi |
+| **Pemeliharaan** | Mengubah satu hal bisa merusak yang lain | Logika terisolasi |
+| **Reusabilitas** | Logika terkurung dalam satu method besar | Method-method kecil bisa dipakai ulang |
+
+---
+
+## Primitive Obsession
+
+Terjadi saat kita menggunakan tipe data primitif sebagai pengganti objek — karena kita pikir data tersebut bisa cukup direpresentasikan oleh primitif.
+
+### Masalah
+
+Dengan tipe data primitif, kita hanya bisa menyimpan nilai — tidak bisa memvalidasi. Programmer sering buat daftar hari menggunakan String, tapi bagaimana kalau seseorang mengisi `day1 = "Saturnus"`? Tidak bisa langsung divalidasi.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — validasi terkurung dalam method pemanggil"
+  afterTitle="Sesudah — objek membawa validasinya sendiri"
+  before={`public void createContact(String name, String phoneNumber) {
+    // Validasi terkurung di method ini — harus diulang di semua method yang terima phone
+    if (phoneNumber.length() != 10 || !phoneNumber.startsWith("0")) {
+        throw new IllegalArgumentException("Invalid phone number");
+    }
+    System.out.println("Saving contact: " + name);
+}`}
+  after={`public class PhoneNumber {
+    private final String value;
+
+    public PhoneNumber(String value) {
+        if (value == null || value.length() != 10) {
+            throw new IllegalArgumentException("Must be 10 digits");
+        }
+        this.value = value;
+    }
+
+    public String getAreaCode() { return value.substring(0, 3); }
+}
+
+// Penggunaan — validasi otomatis saat buat objek
+public void createContact(String name, PhoneNumber phone) {
+    System.out.println("Saving contact with area code: " + phone.getAreaCode());
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | `String` tidak menjelaskan apa yang direpresentasikannya | Nama class `PhoneNumber` secara eksplisit menjelaskannya |
+| **Pengujian** | Harus test logika di dalam setiap method | Cukup test class `PhoneNumber` sekali saja |
+| **Pemeliharaan** | Logika validasi terduplikasi di seluruh aplikasi | Aturan validasi ada di satu tempat |
+| **Reusabilitas** | Harus copy-paste logika untuk menangani data | Objek bisa dipakai ulang di method mana saja |
+
+---
+
+## Long Parameter List
+
+Daftar parameter yang terlalu panjang — biasanya karena beberapa algoritma digabung dalam satu method.
+
+### Masalah
+
+Method dengan parameter panjang sangat mudah salah urutan atau salah isi saat dipanggil. Meskipun IDE menampilkan urutan parameter, ini tetap bukan pendekatan yang baik.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — tujuh parameter dalam satu method"
+  afterTitle="Sesudah — parameter dikelompokkan menjadi objek"
+  before={`public void createUser(String firstName, String lastName, String email,
+                       String street, String city, String zipCode, String phone) {
+    System.out.println("User " + firstName + " created in " + city);
+}
+
+// Memanggil method ini adalah mimpi buruk:
+service.createUser("John", "Doe", "john@email.com", "123 Main St", "NY", "10001", "555-0199");`}
+  after={`public class Address {
+    String street, city, zipCode;
+}
+
+public void createUser(String firstName, String lastName, String email,
+                       Address address, String phone) {
+    System.out.println("User " + firstName + " created in " + address.getCity());
+}
+
+// Memanggil method ini sekarang terstruktur:
+Address userAddress = new Address("123 Main St", "NY", "10001");
+service.createUser("John", "Doe", "john@email.com", userAddress, "555-0199");`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Deretan nilai panjang sulit diuraikan | Objek memberikan makna pada kelompok data |
+| **Pengujian** | Setup test membutuhkan banyak nilai dummy | Cukup lempar satu objek yang terdefinisi |
+| **Pemeliharaan** | Menambah satu field baru merusak semua pemanggilan | Cukup tambah field ke objek |
+| **Reusabilitas** | Tidak bisa meneruskan "alamat" sebagai satu unit | Objek `Address` bisa diteruskan ke method mana saja |
+
+---
+
+## Data Clumps
+
+Berbagai bagian code mengandung kelompok variable yang identik yang selalu muncul bersamaan.
+
+### Masalah
+
+Ketika beberapa data selalu muncul bersama, dan menghapus satu saja akan menimbulkan error — itu tanda data clumps. Buruk dalam hal reusabilitas karena harus copy-paste beberapa data bersamaan.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — pasangan errorCode dan errorMessage selalu muncul bersama"
+  afterTitle="Sesudah — kelompok data dijadikan satu objek"
+  before={`public void logError(int errorCode, String errorMessage) {
+    System.out.println("Error " + errorCode + ": " + errorMessage);
+}
+
+public void notifyAdmin(int errorCode, String errorMessage, String adminEmail) {
+    System.out.println("Alerting " + adminEmail + " about " + errorMessage);
+}
+
+// errorCode dan errorMessage selalu muncul bersama — tanda data clumps!`}
+  after={`public class ErrorDetail {
+    private final int code;
+    private final String message;
+
+    public ErrorDetail(int code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+}
+
+// Method-method sekarang lebih bersih
+public void logError(ErrorDetail error) { ... }
+public void notifyAdmin(ErrorDetail error, String adminEmail) { ... }`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Kelompok parameter berulang mengacaukan code | Hubungan antar variable terlihat jelas |
+| **Pengujian** | Harus buat ulang kelompok nilai yang sama untuk setiap test | Buat satu objek `ErrorDetail` dan gunakan ulang |
+| **Pemeliharaan** | Menambah "timestamp" ke error = ubah semua method | Cukup tambah field ke class `ErrorDetail` |
+| **Reusabilitas** | Tidak bisa meneruskan "error" sebagai satu unit | Objek bisa diteruskan ke seluruh sistem |

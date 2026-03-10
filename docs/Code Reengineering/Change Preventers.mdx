@@ -1,0 +1,509 @@
+---
+sidebar_position: 3
+title: Change Preventers
+---
+
+# Change Preventers
+
+**Semua jenis Change Preventers, penjelasan, contoh kode nyata, dan cara refactoringnya**
+
+Code smell ini menyebabkan perubahan menjadi sangat sulit. Ketika kamu mengubah satu bagian, kamu terpaksa mengubah banyak bagian lain — program menjadi rapuh dan mahal untuk di-maintain.
+
+> Sumber: [Refactoring Guru](https://refactoring.guru/refactoring/smells/change-preventers)
+
+---
+
+## Divergent Change
+
+Satu class sering diubah karena **banyak alasan yang berbeda-beda**. Setiap perubahan — logika database, format export, aturan bisnis — selalu buka class yang sama.
+
+### Masalah
+
+Ini melanggar **Single Responsibility Principle**: sebuah class harusnya punya satu dan hanya satu alasan untuk berubah. Class yang punya terlalu banyak tanggung jawab disebut "God Class".
+
+Risikonya: merge conflict tinggi, side effect tidak terduga, dan tidak bisa test satu fitur tanpa load dependency fitur lain.
+
+export const divergentChangeFiles = [
+  {
+    type: "folder",
+    name: "DivergentChange",
+    children: [
+      {
+        type: "folder",
+        name: "src",
+        children: [
+          {
+            type: "folder",
+            name: "main",
+            children: [
+              {
+                type: "file",
+                name: "Report.java",
+                lang: "java",
+                code: `package main;
+
+public class Report {
+	private String data;
+
+	// Tanggung jawab 1: Generate data laporan
+	public void generateReport() {
+		this.data = "LHSS Semester 3";
+		System.out.println("Generating LHSS...");
+	}
+
+	public String getData() {
+		return data;
+	}
+}`,
+              },
+              {
+                type: "file",
+                name: "ReportDB.java",
+                lang: "java",
+                code: `package main;
+
+public class ReportDB {
+	// Tanggung jawab 2: Urusan database
+	public void saveToDatabase(Report reporter) {
+		System.out.println("Connecting to SQL DB...");
+		System.out.println("INSERT INTO reports VALUES ('" + reporter.getClass() + "')");
+	}
+}`,
+              },
+              {
+                type: "file",
+                name: "ReportExporter.java",
+                lang: "java",
+                code: `package main;
+
+public class ReportExporter {
+	// Tanggung jawab 3: Urusan format export
+	public void exportToPDF(Report report) {
+		System.out.println("Converting to PDF...");
+		System.out.println("PDF Report: " + report.getData());
+	}
+
+	public void exportToXML(Report report) {
+		System.out.println("Converting to XML...");
+		System.out.println("<report><data>" + report.getData() + "</data></report>");
+	}
+}`,
+              },
+              {
+                type: "file",
+                name: "Main.java",
+                lang: "java",
+                code: `package main;
+
+public class Main {
+	public static void main(String[] args) {
+		Report report = new Report();
+		report.generateReport();
+
+		ReportExporter exporter = new ReportExporter();
+		exporter.exportToPDF(report);
+		exporter.exportToXML(report);
+
+		ReportDB db = new ReportDB();
+		db.saveToDatabase(report);
+	}
+}`,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+<FileExplorer files={divergentChangeFiles} defaultFile="DivergentChange/src/main/Report.java" height={420} />
+
+### Solusi
+
+Pisahkan tanggung jawab ke class yang berbeda. Setiap class hanya punya **satu alasan untuk berubah**.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — satu God Class dengan semua tanggung jawab"
+  afterTitle="Sesudah — tanggung jawab dipisah ke class masing-masing"
+  before={`// God Class: satu alasan perubahan dari mana saja
+public class Report {
+    private String data;
+
+    public void generateReport() { /* logic generate */ }
+
+    public void saveToDatabase() { /* logic DB */ }
+
+    public void exportToPDF() { /* logic PDF */ }
+
+    public void exportToXML() { /* logic XML */ }
+}`}
+  after={`// Setiap class punya satu tanggung jawab
+public class Report {
+    public void generateReport() { /* hanya generate */ }
+}
+
+public class ReportDB {
+    public void saveToDatabase(Report r) { /* hanya DB */ }
+}
+
+public class ReportExporter {
+    public void exportToPDF(Report r) { /* hanya PDF */ }
+    public void exportToXML(Report r) { /* hanya XML */ }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Class jadi "laci sampah" berisi code tidak berkaitan | Setiap class punya tujuan tunggal yang jelas |
+| **Pengujian** | Test logika data harus load dependency DB dan PDF | Bisa test `Report` tanpa menyentuh database |
+| **Pemeliharaan** | Ganti library PDF bisa merusak logika save DB | Perubahan DB hanya berdampak pada `ReportDB` |
+| **Reusabilitas** | Tidak bisa pakai data laporan tanpa drag logika PDF | Class `Report` bisa dipakai di bagian mana saja |
+
+---
+
+## Shotgun Surgery
+
+Satu perubahan kecil memaksa kamu mengedit **banyak class berbeda** sekaligus. Seperti tembakan shotgun — pelurunya kemana-mana.
+
+### Masalah
+
+Validasi umur tersebar di `AccountService` dan `LoanService`. Ketika aturan berubah (batas umur naik dari 20 ke 21), kamu harus **cari dan edit semua class** yang punya logika tersebut.
+
+Risikonya: sangat mudah lupa satu file, redundant effort, dan logika inti tidak terpusat.
+
+export const shotgunSurgeryFiles = [
+  {
+    type: "folder",
+    name: "ShotgunSurgery",
+    children: [
+      {
+        type: "folder",
+        name: "src",
+        children: [
+          {
+            type: "folder",
+            name: "Main",
+            children: [
+              {
+                type: "file",
+                name: "AgeValidation.java",
+                lang: "java",
+                code: `package Main;
+
+public class AgeValidation {
+	public static void validateAge(int age) throws Exception {
+		if (age < 20) {
+			throw new Exception("Age is not old enough");
+		}
+	}
+}`,
+              },
+              {
+                type: "file",
+                name: "AccountService.java",
+                lang: "java",
+                code: `package Main;
+
+public class AccountService {
+	public void register(String name, int age) throws Exception {
+		AgeValidation.validateAge(age); // delegasi ke satu sumber
+
+		System.out.println("User " + name + " registered successfully.");
+	}
+}`,
+              },
+              {
+                type: "file",
+                name: "LoanService.java",
+                lang: "java",
+                code: `package Main;
+
+public class LoanService {
+	public void applyLoan(String name, int age) throws Exception {
+		AgeValidation.validateAge(age); // satu sumber yang sama
+		System.out.println("Loan approved for " + name);
+	}
+}`,
+              },
+              {
+                type: "file",
+                name: "Main.java",
+                lang: "java",
+                code: `package Main;
+
+public class Main {
+
+	public static void main(String[] args) {
+		AccountService account = new AccountService();
+		LoanService loan = new LoanService();
+
+		try {
+			account.register("Frans", 20);
+			loan.applyLoan("Frans", 19); // akan throw exception
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
+}`,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+<FileExplorer files={shotgunSurgeryFiles} defaultFile="ShotgunSurgery/src/Main/AgeValidation.java" height={400} />
+
+### Solusi
+
+Pindahkan logika yang tersebar ke **satu class terpusat**. Semua yang butuh logika itu cukup memanggil class tersebut.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — validasi duplikat di semua service"
+  afterTitle="Sesudah — validasi terpusat di AgeValidation"
+  before={`public class AccountService {
+    public void register(String name, int age) throws Exception {
+        if (age < 20) { // logika tersebar di sini
+            throw new Exception("Age is not old enough");
+        }
+        System.out.println("User " + name + " registered.");
+    }
+}
+
+public class LoanService {
+    public void applyLoan(String name, int age) throws Exception {
+        if (age < 20) { // logika yang sama persis ada di sini juga!
+            throw new Exception("Age is not old enough");
+        }
+        System.out.println("Loan approved for " + name);
+    }
+}`}
+  after={`public class AgeValidation {
+    public static void validateAge(int age) throws Exception {
+        if (age < 20) throw new Exception("Age is not old enough");
+    }
+}
+
+public class AccountService {
+    public void register(String name, int age) throws Exception {
+        AgeValidation.validateAge(age); // satu sumber kebenaran
+        System.out.println("User " + name + " registered.");
+    }
+}
+
+public class LoanService {
+    public void applyLoan(String name, int age) throws Exception {
+        AgeValidation.validateAge(age); // sama, satu sumber
+        System.out.println("Loan approved for " + name);
+    }
+}`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Tidak jelas di mana "sumber kebenaran" sebuah aturan | Logika punya rumah yang jelas dan bernama |
+| **Pengujian** | Harus test tiap class untuk pastikan aturan konsisten | Test logikanya sekali di class terpusat |
+| **Pemeliharaan** | Ubah satu aturan = berburu ke banyak file | Ubah di satu tempat, semua pemanggil ikut |
+| **Reusabilitas** | Logika terkurung dan berulang di class tidak berkaitan | Class baru mana pun bisa pakai `AgeValidation` |
+
+---
+
+## Parallel Inheritance Hierarchies
+
+Setiap kali buat subclass di satu class, kamu terpaksa buat subclass di class lain juga. Dua hierarki tumbuh paralel seperti bayangan satu sama lain.
+
+### Masalah
+
+Ada `Vehicle → Car, Truck` dan ada `VehiclePrinter → CarPrinter, TruckPrinter`. Tambah `Bus`? Harus buat **dua** class: `Bus` dan `BusPrinter`. Double kerja yang tidak perlu.
+
+export const parallelHierarchyFiles = [
+  {
+    type: "folder",
+    name: "ParallelInheritanceHierarchies",
+    children: [
+      {
+        type: "folder",
+        name: "src",
+        children: [
+          {
+            type: "folder",
+            name: "deleted",
+            children: [
+              {
+                type: "file",
+                name: "VehiclePrinter.java",
+                lang: "java",
+                code: `package deleted;
+
+// Hierarki paralel yang dihapus
+// Hierarki 2 — bayangan dari hierarki Vehicle
+public interface VehiclePrinter {
+	public void print();
+}`,
+              },
+              {
+                type: "file",
+                name: "CarPrinter.java",
+                lang: "java",
+                code: `package deleted;
+
+// Dihapus
+public class CarPrinter implements VehiclePrinter {
+	@Override
+	public void print() {
+		System.out.println("Printing Car info...");
+	}
+}`,
+              },
+              {
+                type: "file",
+                name: "TruckPrinter.java",
+                lang: "java",
+                code: `package deleted;
+
+// Dihapus
+public class TruckPrinter implements VehiclePrinter {
+	@Override
+	public void print() {
+		// TODO Auto-generated method stub
+	}
+}`,
+              },
+            ],
+          },
+          {
+            type: "folder",
+            name: "main",
+            children: [
+              {
+                type: "file",
+                name: "Vehicle.java",
+                lang: "java",
+                code: `package main;
+
+// Hierarki 1 — satu-satunya hierarki yang tersisa
+public abstract class Vehicle {
+	abstract String getName();
+
+	// print() sekarang ada di sini — tidak perlu class Printer terpisah!
+	public void print() {
+		System.out.println("Printing " + getName() + " info...");
+	}
+}`,
+              },
+              {
+                type: "file",
+                name: "Car.java",
+                lang: "java",
+                code: `package main;
+
+public class Car extends Vehicle {
+
+	@Override
+	String getName() {
+		return "Toyota Avanza";
+	}
+
+}`,
+              },
+              {
+                type: "file",
+                name: "Truck.java",
+                lang: "java",
+                code: `package main;
+
+public class Truck extends Vehicle {
+	@Override
+	String getName() {
+		return "Mitsubishi";
+	}
+}`,
+              },
+              {
+                type: "file",
+                name: "Main.java",
+                lang: "java",
+                code: `package main;
+
+public class Main {
+
+	public static void main(String[] args) {
+		Vehicle car = new Car();
+		car.print(); // "Printing Toyota Avanza info..."
+
+		Vehicle truck = new Truck();
+		truck.print(); // "Printing Mitsubishi info..."
+
+		// Kalau mau tambah Bus: cukup buat Bus extends Vehicle
+		// TIDAK perlu buat BusPrinter!
+	}
+
+}`,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+<FileExplorer files={parallelHierarchyFiles} defaultFile="ParallelInheritanceHierarchies/src/deleted/VehiclePrinter.java" height={440} />
+
+### Solusi
+
+Pindahkan method `print()` langsung ke hierarki `Vehicle`. Hapus hierarki `VehiclePrinter` sama sekali.
+
+<DiffBlock
+  lang="java"
+  beforeTitle="Sebelum — dua hierarki paralel tumbuh bersamaan"
+  afterTitle="Sesudah — satu hierarki, print() ada di Vehicle"
+  before={`// Hierarki 1
+abstract class Vehicle { }
+class Car extends Vehicle { }
+class Truck extends Vehicle { }
+
+// Hierarki 2 — bayangan dari Hierarki 1
+interface VehiclePrinter { void print(); }
+class CarPrinter implements VehiclePrinter {
+    public void print() { System.out.println("Printing Car..."); }
+}
+class TruckPrinter implements VehiclePrinter {
+    public void print() { System.out.println("Printing Truck..."); }
+}
+
+// Tambah Bus? Wajib buat Bus + BusPrinter!`}
+  after={`// Hanya satu hierarki
+abstract class Vehicle {
+    abstract String getName();
+    public void print() {
+        System.out.println("Printing " + getName() + " info...");
+    }
+}
+class Car extends Vehicle {
+    String getName() { return "Toyota Avanza"; }
+}
+class Truck extends Vehicle {
+    String getName() { return "Mitsubishi"; }
+}
+// Tambah Bus? Cukup satu class!`}
+/>
+
+### Perbandingan
+
+| Fitur | Sebelum | Sesudah |
+|---|---|---|
+| **Keterbacaan** | Harus loncat antara dua pohon class untuk satu "tipe" | Satu hierarki, semua perilaku ada di sana |
+| **Pengujian** | Harus tulis test duplikat untuk Vehicle dan Printer-nya | Cukup test Vehicle dan subclass-nya |
+| **Pemeliharaan** | Tambah tipe baru = ingat buat dua class di dua tempat | Tambah tipe baru = buat satu subclass, selesai |
+| **Reusabilitas** | Logika CarPrinter terikat ketat pada Car | Method `print()` bisa dipakai ulang lewat polimorfisme |
